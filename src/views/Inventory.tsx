@@ -432,6 +432,7 @@ const Inventory = () => {
 
   const handleSaveCategory = async () => {
     console.log('[Inventory] Salvando categoria:', newCategory);
+    console.log('[Inventory] Categorias atuais:', categories);
     
     // Validar nome da categoria
     if (!newCategory.name || newCategory.name.trim().length === 0) {
@@ -446,14 +447,21 @@ const Inventory = () => {
         id: localId,
         name: newCategory.name.trim(),
         icon: 'Tag', // Ícone padrão para novas categorias
-        isVisibleDigital: true,
-        created_at: new Date().toISOString()
+        isVisibleDigital: true
       };
       
       console.log('[Inventory] Criando categoria localmente:', newCategoryData);
       
       // ✅ ADICIONAR AO STORE LOCAL PRIMEIRO
+      console.log('[Inventory] Chamando addCategory...');
       addCategory(newCategoryData);
+      console.log('[Inventory] addCategory chamado, verificando se foi adicionado...');
+      
+      // Verificar se foi adicionado (timeout para estado atualizar)
+      setTimeout(() => {
+        console.log('[Inventory] Categorias após adicionar:', categories);
+        console.log('[Inventory] Nova categoria encontrada?', categories.find(c => c.id === localId));
+      }, 100);
       
       // 🔄 TENTAR SINCRONIZAR COM SUPABASE (se disponível)
       try {
@@ -491,6 +499,9 @@ const Inventory = () => {
       // Limpar formulário
       setNewCategory({ name: '' });
       setIsCategoryModalOpen(false);
+      
+      // Forçar notificação de sucesso local
+      addNotification('success', `Categoria "${newCategory.name.trim()}" criada com sucesso!`);
       
     } catch (error: any) {
       console.error('[Inventory] ❌ ERRO AO CRIAR CATEGORIA:', error);
