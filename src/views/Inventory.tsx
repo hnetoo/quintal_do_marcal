@@ -431,7 +431,8 @@ const Inventory = () => {
   };
 
   const handleSaveCategory = async () => {
-    console.log('[Inventory] Salvando categoria:', newCategory);
+    console.log('[Inventory] VERSÃO OFFLINE - Salvando categoria:', newCategory);
+    console.log('[Inventory] TIMESTAMP:', new Date().toISOString());
     console.log('[Inventory] Categorias atuais:', categories);
     
     // Validar nome da categoria
@@ -450,37 +451,37 @@ const Inventory = () => {
         isVisibleDigital: true
       };
       
-      console.log('[Inventory] Criando categoria localmente (MODO OFFLINE):', newCategoryData);
+      console.log('[Inventory] 🚫 MODO OFFLINE ABSOLUTO - Criando categoria:', newCategoryData);
       
       // ✅ ADICIONAR AO STORE LOCAL - SEM SUPABASE
-      console.log('[Inventory] Chamando addCategory (MODO LOCAL)...');
+      console.log('[Inventory] 📦 Adicionando ao store local...');
       addCategory(newCategoryData);
-      console.log('[Inventory] addCategory chamado, aguardando atualização...');
+      console.log('[Inventory] ✅ addCategory chamado!');
       
-      // Forçar atualização do estado
+      // Verificação imediata
       setTimeout(() => {
         const currentCategories = useStore.getState().categories;
-        console.log('[Inventory] Categorias após adicionar:', currentCategories);
-        console.log('[Inventory] Nova categoria encontrada?', currentCategories.find(c => c.id === localId));
+        console.log('[Inventory] 📊 Verificação:', currentCategories.length, 'categorias');
+        console.log('[Inventory] 🔍 Nova categoria encontrada?', currentCategories.find(c => c.id === localId));
         
         if (currentCategories.find(c => c.id === localId)) {
-          console.log('[Inventory] ✅ SUCESSO: Categoria adicionada localmente!');
+          console.log('[Inventory] 🎉 SUCESSO TOTAL - Categoria criada offline!');
           addNotification('success', `Categoria "${newCategory.name.trim()}" criada com sucesso!`);
         } else {
-          console.error('[Inventory] ❌ FALHA: Categoria não foi adicionada');
-          addNotification('error', 'Falha ao criar categoria. Tente recarregar a página.');
+          console.error('[Inventory] ❌ FALHA CRÍTICA - Store não atualizou');
+          addNotification('error', 'Falha ao criar categoria. Recarregue a página.');
         }
-      }, 100);
+      }, 50);
       
       // Limpar formulário imediatamente
       setNewCategory({ name: '' });
       setIsCategoryModalOpen(false);
       
-      // 🚫 NÃO TENTAR SUPABASE - MODO APENAS LOCAL
-      console.log('[Inventory] MODO LOCAL ATIVADO - Sem sincronização externa');
+      // 🚫 BLOQUEIO COMPLETO - ZERO SUPABASE
+      console.log('[Inventory] 🔒 MODO OFFLINE BLOQUEADO - Nenhuma conexão externa');
       
     } catch (error: any) {
-      console.error('[Inventory] ❌ ERRO AO CRIAR CATEGORIA:', error);
+      console.error('[Inventory] 💥 ERRO CRÍTICO:', error);
       addNotification('error', `Erro ao criar categoria: ${error.message}`);
     }
   };
