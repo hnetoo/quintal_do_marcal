@@ -1100,7 +1100,7 @@ restoreFromSupabase: async () => {
       // CARREGAR FUNCIONÁRIOS DO SUPABASE
       loadEmployees: async () => {
         try {
-          console.log('[STAFF] Carregando funcionários do Supabase...');
+          console.log('[STAFF] Carregando funcionários...');
           
           const { data: staffData, error } = await supabase
             .from('staff')
@@ -1108,15 +1108,11 @@ restoreFromSupabase: async () => {
             .order('created_at', { ascending: false });
 
           if (error) {
-            console.error('[STAFF] Erro ao carregar funcionários:', error);
-            get().addNotification('error', 'Falha ao carregar funcionários');
+            console.log('[STAFF] Sem conexão com Supabase, usando modo local');
             return;
           }
 
           console.log('[STAFF] Funcionários carregados:', staffData?.length || 0);
-          if (staffData && staffData.length > 0) {
-            console.log('Colunas Staff:', staffData[0]);
-          }
 
           // Converter para o formato local
           const formattedEmployees = staffData?.map(staff => ({
@@ -1135,15 +1131,14 @@ restoreFromSupabase: async () => {
           console.log('[STAFF] Estado atualizado com funcionários:', formattedEmployees.length);
           
         } catch (error) {
-          console.error('[STAFF] Erro crítico ao carregar funcionários:', error);
-          get().addNotification('error', 'Falha crítica ao carregar funcionários');
+          console.log('[STAFF] Modo offline - funcionários não carregados');
         }
       },
 
       // CARREGAR DESPESAS DO SUPABASE
       loadExpenses: async () => {
         try {
-          console.log('[EXPENSE] Carregando despesas do Supabase...');
+          console.log('[EXPENSE] Carregando despesas...');
           
           const { data: expensesData, error } = await supabase
             .from('expenses')
@@ -1151,15 +1146,11 @@ restoreFromSupabase: async () => {
             .order('created_at', { ascending: false });
 
           if (error) {
-            console.error('[EXPENSE] Erro ao carregar despesas:', error);
-            get().addNotification('error', 'Falha ao carregar despesas');
+            console.log('[EXPENSE] Sem conexão com Supabase, usando modo local');
             return;
           }
 
           console.log('[EXPENSE] Despesas carregadas:', expensesData?.length || 0);
-          if (expensesData && expensesData.length > 0) {
-            console.log('Colunas Expenses:', expensesData[0]);
-          }
 
           // Converter para o formato local
           const formattedExpenses = expensesData?.map(exp => ({
@@ -1180,8 +1171,7 @@ restoreFromSupabase: async () => {
           console.log('[EXPENSE] Estado atualizado com despesas:', formattedExpenses.length);
           
         } catch (error) {
-          console.error('[EXPENSE] Erro crítico ao carregar despesas:', error);
-          get().addNotification('error', 'Falha crítica ao carregar despesas');
+          console.log('[EXPENSE] Modo offline - despesas não carregadas');
         }
       },
 
