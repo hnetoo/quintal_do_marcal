@@ -457,11 +457,32 @@ const Inventory = () => {
       addCategory(newCategoryData);
       console.log('[Inventory] addCategory chamado, verificando se foi adicionado...');
       
+      // Forçar sincronização com SQLite
+      try {
+        console.log('[Inventory] Forçando sincronização com SQLite...');
+        const state = useStore.getState();
+        console.log('[Inventory] Estado atual do store:', state.categories.length, 'categorias');
+        
+        // Tentar salvar diretamente no SQLite
+        if (typeof sqliteService !== 'undefined' && sqliteService.saveState) {
+          await sqliteService.saveState(state);
+          console.log('[Inventory] Estado salvo no SQLite');
+        }
+      } catch (sqliteError) {
+        console.warn('[Inventory] Erro ao salvar no SQLite:', sqliteError);
+      }
+      
       // Verificar se foi adicionado (timeout para estado atualizar)
       setTimeout(() => {
         console.log('[Inventory] Categorias após adicionar:', categories);
         console.log('[Inventory] Nova categoria encontrada?', categories.find(c => c.id === localId));
-      }, 100);
+        
+        // Forçar reload da página se não foi adicionada
+        if (!categories.find(c => c.id === localId)) {
+          console.warn('[Inventory] Categoria não foi adicionada, tentando forçar reload...');
+          window.location.reload();
+        }
+      }, 200);
       
       // 🔄 TENTAR SINCRONIZAR COM SUPABASE (se disponível)
       try {
@@ -480,11 +501,6 @@ const Inventory = () => {
             addNotification('warning', 'Categoria salva localmente. Erro ao sincronizar com nuvem.');
           } else {
             console.log('[Inventory] ✅ Categoria sincronizada com Supabase:', data);
-            // Atualizar ID local com ID do Supabase se sucesso
-            const updatedCategories = categories.map(cat => 
-              cat.id === localId ? { ...cat, id: data.id } : cat
-            );
-            // Aqui poderíamos atualizar o store, mas por agora mantemos o ID local
             addNotification('success', 'Categoria criada e sincronizada com sucesso!');
           }
         } else {
