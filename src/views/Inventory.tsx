@@ -441,7 +441,7 @@ const Inventory = () => {
     }
     
     try {
-      // 🎯 PRIORIDADE: Criar categoria localmente primeiro
+      // 🎯 PRIORIDADE ABSOLUTA: Criar categoria localmente SEM NENHUMA CONEXÃO EXTERNA
       const localId = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newCategoryData = {
         id: localId,
@@ -450,74 +450,34 @@ const Inventory = () => {
         isVisibleDigital: true
       };
       
-      console.log('[Inventory] Criando categoria localmente:', newCategoryData);
+      console.log('[Inventory] Criando categoria localmente (MODO OFFLINE):', newCategoryData);
       
-      // ✅ ADICIONAR AO STORE LOCAL PRIMEIRO
-      console.log('[Inventory] Chamando addCategory...');
+      // ✅ ADICIONAR AO STORE LOCAL - SEM SUPABASE
+      console.log('[Inventory] Chamando addCategory (MODO LOCAL)...');
       addCategory(newCategoryData);
-      console.log('[Inventory] addCategory chamado, verificando se foi adicionado...');
+      console.log('[Inventory] addCategory chamado, aguardando atualização...');
       
-      // Forçar sincronização com SQLite
-      try {
-        console.log('[Inventory] Forçando sincronização com SQLite...');
-        const state = useStore.getState();
-        console.log('[Inventory] Estado atual do store:', state.categories.length, 'categorias');
-        
-        // Tentar salvar diretamente no SQLite
-        if (typeof sqliteService !== 'undefined' && sqliteService.saveState) {
-          await sqliteService.saveState(state);
-          console.log('[Inventory] Estado salvo no SQLite');
-        }
-      } catch (sqliteError) {
-        console.warn('[Inventory] Erro ao salvar no SQLite:', sqliteError);
-      }
-      
-      // Verificar se foi adicionado (timeout para estado atualizar)
+      // Forçar atualização do estado
       setTimeout(() => {
-        console.log('[Inventory] Categorias após adicionar:', categories);
-        console.log('[Inventory] Nova categoria encontrada?', categories.find(c => c.id === localId));
+        const currentCategories = useStore.getState().categories;
+        console.log('[Inventory] Categorias após adicionar:', currentCategories);
+        console.log('[Inventory] Nova categoria encontrada?', currentCategories.find(c => c.id === localId));
         
-        // Forçar reload da página se não foi adicionada
-        if (!categories.find(c => c.id === localId)) {
-          console.warn('[Inventory] Categoria não foi adicionada, tentando forçar reload...');
-          window.location.reload();
-        }
-      }, 200);
-      
-      // 🔄 TENTAR SINCRONIZAR COM SUPABASE (se disponível)
-      try {
-        if (settings.supabaseUrl && settings.supabaseKey) {
-          console.log('[Inventory] Tentando sincronizar com Supabase...');
-          const { data, error } = await supabase
-            .from('categories')
-            .insert({
-              name: newCategory.name.trim()
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.warn('[Inventory] Erro ao sincronizar com Supabase (categoria salva localmente):', error);
-            addNotification('warning', 'Categoria salva localmente. Erro ao sincronizar com nuvem.');
-          } else {
-            console.log('[Inventory] ✅ Categoria sincronizada com Supabase:', data);
-            addNotification('success', 'Categoria criada e sincronizada com sucesso!');
-          }
+        if (currentCategories.find(c => c.id === localId)) {
+          console.log('[Inventory] ✅ SUCESSO: Categoria adicionada localmente!');
+          addNotification('success', `Categoria "${newCategory.name.trim()}" criada com sucesso!`);
         } else {
-          console.log('[Inventory] Supabase não configurado, mantendo apenas localmente');
-          addNotification('info', 'Categoria criada localmente (sem sincronização com nuvem).');
+          console.error('[Inventory] ❌ FALHA: Categoria não foi adicionada');
+          addNotification('error', 'Falha ao criar categoria. Tente recarregar a página.');
         }
-      } catch (syncError) {
-        console.warn('[Inventory] Erro na sincronização (categoria salva localmente):', syncError);
-        addNotification('warning', 'Categoria salva localmente. Erro ao sincronizar.');
-      }
+      }, 100);
       
-      // Limpar formulário
+      // Limpar formulário imediatamente
       setNewCategory({ name: '' });
       setIsCategoryModalOpen(false);
       
-      // Forçar notificação de sucesso local
-      addNotification('success', `Categoria "${newCategory.name.trim()}" criada com sucesso!`);
+      // 🚫 NÃO TENTAR SUPABASE - MODO APENAS LOCAL
+      console.log('[Inventory] MODO LOCAL ATIVADO - Sem sincronização externa');
       
     } catch (error: any) {
       console.error('[Inventory] ❌ ERRO AO CRIAR CATEGORIA:', error);
