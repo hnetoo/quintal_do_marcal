@@ -1,6 +1,5 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { GlobalNotificationCenter } from './src/components/GlobalNotificationCenter';
 import Sidebar from './src/components/Sidebar';
 import DatabaseControlPanel from './src/components/DatabaseControlPanel';
 import Login from './src/views/Login';
@@ -18,12 +17,12 @@ import PurchaseApproval from './src/views/PurchaseApproval';
 import ApprovePurchase from './src/views/ApprovePurchase';
 import Finance from './src/views/Finance';
 import Analytics from './src/views/Analytics';
+import './src/styles/responsive.css';
 import Reports from './src/views/Reports';
 import Employees from './src/views/Employees';
 import SystemHub from './src/views/SystemHub';
 import PublicMenu from './src/views/PublicMenu';
 import CustomerDisplay from './src/views/CustomerDisplay';
-import Settings from './src/views/Settings';
 import { X } from 'lucide-react';
 import { useStore } from './src/store/useStore';
 

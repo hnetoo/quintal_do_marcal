@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Interface de Instalação Personalizada -->
+    <UI Id="WixUI_InstallDir">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      
+      <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+      <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value=" " />
+      
+      <!-- Dialogos Personalizados -->
+      <Dialog Id="WelcomeDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Text="&amp;Próximo" Default="yes" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="Cancelar" />
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="Bem-vindo ao Assistente de Instalação do Tasca do Vereda POS. Este sistema irá ajudá-lo a gerenciar seu restaurante de forma eficiente e moderna." />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Tasca do Vereda POS v1.0.6" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
+      
+      <Dialog Id="InstallDirDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Text="&amp;Próximo" Default="yes" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="Cancelar" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Anterior" />
+        <Control Id="Browse" Type="PushButton" X="44" Y="243" Width="56" Height="17" Text="&amp;Procurar..." />
+        <Control Id="FolderLabel" Type="Text" X="20" Y="20" Width="290" Height="15" Text="{\WixUI_Font_Normal}Pasta de Instalação:" />
+        <Control Id="Folder" Type="PathEdit" X="20" Y="40" Width="320" Height="18" Property="WIXUI_INSTALLDIR" />
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="40" Transparent="yes" NoPrefix="yes" Text="Selecione a pasta onde deseja instalar o Tasca do Vereda POS." />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Pasta de Destino" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
+      
+      <Dialog Id="VerifyReadyDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Install" Type="PushButton" X="172" Y="243" Width="80" Height="17" Text="&amp;Instalar" Default="yes" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="Cancelar" />
+        <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17" Text="&amp;Anterior" />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Text" Type="Text" X="25" Y="70" Width="320" Height="40" Text="Clique em Instalar para começar a instalação. Clique em Anterior para revisar ou alterar qualquer configuração de instalação. Clique em Cancelar para sair do assistente." />
+        <Control Id="Text" Type="Text" X="25" Y="110" Width="320" Height="20" Text="{\WixUI_Font_Bigger}Pronto para instalar o Tasca do Vereda POS" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
+      
+      <Dialog Id="ExitDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Finish" Type="PushButton" X="236" Y="243" Width="56" Height="17" Text="&amp;Concluir" Default="yes" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="Cancelar" />
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="O Tasca do Vereda POS foi instalado com sucesso em seu computador. Você pode iniciar o aplicativo através do menu Iniciar ou do atalho na área de trabalho." />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Instalação Concluída" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="OptionalCheckBox" X="135" Y="190" Width="220" Height="18" Type="CheckBox" Text="Iniciar o Tasca do Vereda POS" CheckBoxValue="Y" Property="WIXUI_EXITDIALOGOPTIONALCHECKBOX" />
+      </Dialog>
+    </UI>
+    
+    <UIRef Id="WixUI_InstallDir" />
+    
+    <!-- Sequência de Instalação -->
+    <InstallUISequence>
+      <Show Dialog="WelcomeDlg" Before="ProgressDlg" />
+      <Show Dialog="InstallDirDlg" Before="VerifyReadyDlg" />
+      <Show Dialog="VerifyReadyDlg" Before="ProgressDlg" />
+    </InstallUISequence>
+    
+    <!-- Sequência de Manutenção -->
+    <InstallUISequence>
+      <Show Dialog="WelcomeDlg" Before="ProgressDlg" />
+      <Show Dialog="VerifyReadyDlg" Before="ProgressDlg" />
+    </InstallUISequence>
+  </Fragment>
+</Wix>

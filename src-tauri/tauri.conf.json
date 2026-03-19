@@ -13,14 +13,19 @@
       {
         "title": "Tasca do Vereda POS v1.0.6",
         "label": "main",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
+        "width": 1920,
+        "height": 1080,
+        "minWidth": 1024,
+        "minHeight": 768,
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
-        "transparent": false
+        "transparent": false,
+        "maximizable": true,
+        "minimizable": true,
+        "center": true,
+        "alwaysOnTop": false,
+        "skipTaskbar": false
       }
     ],
     "security": {
@@ -43,6 +48,9 @@
       "icons/icon.ico"
     ],
     "publisher": "Vereda Systems Angola",
+    "category": "Business",
+    "shortDescription": "Sistema POS para Gestão de Restaurante",
+    "longDescription": "Tasca do Vereda POS é um sistema completo de gestão de restaurantes com interface responsiva, controle de estoque, gestão de funcionários e relatórios financeiros.",
     "windows": {
       "wix": {
         "language": "pt-PT"
@@ -55,6 +63,24 @@
     },
     "notification": {
       "all": true
+    },
+    "dialog": {
+      "all": true
+    },
+    "shell": {
+      "all": true,
+      "open": true
+    },
+    "fs": {
+      "all": true,
+      "readFile": true,
+      "writeFile": true,
+      "readDir": true,
+      "copyFile": true,
+      "createDir": true,
+      "removeDir": true,
+      "removeFile": true,
+      "renameFile": true
     }
   }
 }

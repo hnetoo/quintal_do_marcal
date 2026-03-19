@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Feature Principal -->
+    <Feature Id="ProductFeature" Title="Tasca do Vereda POS" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="HelperFiles" />
+      <ComponentRef Id="ConfigFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="ApplicationRegistry" />
+      <ComponentRef Id="WindowsIntegration" />
+    </Feature>
+    
+    <!-- Feature de Dependências -->
+    <Feature Id="DependenciesFeature" Title="Dependências do Sistema" Level="1" Display="hidden">
+      <ComponentRef Id="VCRedistComponent" />
+      <ComponentRef Id="WebView2Component" />
+      <ComponentRef Id="NetFrameworkComponent" />
+    </Feature>
+    
+    <!-- Componentes de Dependências -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <!-- Visual C++ Redistributable -->
+      <Component Id="VCRedistComponent" Guid="*">
+        <Condition>NOT VCREDIST2019_X64</Condition>
+        <File Id="VCRedist2019" Source="dependencies\vcredist2019_x64.exe" KeyPath="yes" />
+        <CustomAction Id="InstallVCRedist" Return="check" Execute="deferred" Impersonate="no" ExeCommand="/quiet /norestart" FileKey="VCRedist2019" />
+      </Component>
+      
+      <!-- WebView2 Bootstrapper -->
+      <Component Id="WebView2Component" Guid="*">
+        <Condition>NOT WEBVIEW2</Condition>
+        <File Id="WebView2Bootstrapper" Source="dependencies\MicrosoftEdgeWebview2Setup.exe" KeyPath="yes" />
+        <CustomAction Id="InstallWebView2" Return="check" Execute="deferred" Impersonate="no" ExeCommand="/silent /install" FileKey="WebView2Bootstrapper" />
+      </Component>
+      
+      <!-- .NET Framework (se necessário) -->
+      <Component Id="NetFrameworkComponent" Guid="*">
+        <Condition>NOT NETFRAMEWORK45</Condition>
+        <File Id="NetFramework45" Source="dependencies\NDP452-KB2901907-x86-x64-AllOS-ENU.exe" KeyPath="yes" />
+        <CustomAction Id="InstallNetFramework" Return="check" Execute="deferred" Impersonate="no" ExeCommand="/quiet /norestart" FileKey="NetFramework45" />
+      </Component>
+    </DirectoryRef>
+    
+    <!-- Sequência de Instalação de Dependências -->
+    <InstallExecuteSequence>
+      <!-- Instalar .NET Framework primeiro -->
+      <Custom Action="InstallNetFramework" Before="InstallVCRedist">
+        NOT Installed AND (NOT NETFRAMEWORK45)
+      </Custom>
+      
+      <!-- Instalar Visual C++ Redistributable -->
+      <Custom Action="InstallVCRedist" Before="InstallWebView2">
+        NOT Installed AND (NOT VCREDIST2019_X64)
+      </Custom>
+      
+      <!-- Instalar WebView2 -->
+      <Custom Action="InstallWebView2" Before="InstallFinalize">
+        NOT Installed AND (NOT WEBVIEW2)
+      </Custom>
+      
+      <!-- Reiniciar se necessário -->
+      <ScheduleReboot After="InstallWebView2" />
+    </InstallExecuteSequence>
+    
+    <!-- Verificações de Sistema -->
+    <Binary Id="WixCA" SourceFile="dependencies\WixCA.dll" />
+    
+    <!-- Custom Actions para Verificação -->
+    <CustomAction Id="CheckSystemRequirements" BinaryKey="WixCA" DllEntry="CheckSystemRequirements" Return="ignore" />
+    <CustomAction Id="CheckDiskSpace" BinaryKey="WixCA" DllEntry="CheckDiskSpace" Return="ignore" />
+    <CustomAction Id="CheckMemory" BinaryKey="WixCA" DllEntry="CheckMemory" Return="ignore" />
+    
+    <!-- Sequência de Verificação -->
+    <InstallUISequence>
+      <Custom Action="CheckSystemRequirements" Before="WelcomeDlg" />
+      <Custom Action="CheckDiskSpace" Before="WelcomeDlg" />
+      <Custom Action="CheckMemory" Before="WelcomeDlg" />
+    </InstallUISequence>
+    
+    <!-- Registry Keys para Desinstalação -->
+    <Component Id="UninstallRegistry" Guid="*">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{$(var.ProductUpgradeCode)}">
+        <RegistryValue Name="DisplayName" Type="string" Value="Tasca do Vereda POS" />
+        <RegistryValue Name="DisplayVersion" Type="string" Value="1.0.6" />
+        <RegistryValue Name="Publisher" Type="string" Value="Vereda Systems Angola" />
+        <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
+        <RegistryValue Name="UninstallString" Type="string" Value="MsiExec.exe /X{$(var.ProductUpgradeCode)}" />
+        <RegistryValue Name="DisplayIcon" Type="string" Value="[INSTALLFOLDER]\icon.ico" />
+        <RegistryValue Name="NoModify" Type="integer" Value="1" />
+        <RegistryValue Name="NoRepair" Type="integer" Value="1" />
+      </RegistryKey>
+    </Component>
+    
+    <!-- Propriedades do Produto -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="MSIINSTALLPERUSER" Value="" />
+    <Property Id="MSIINSTALLPERUSER_FOLDER" Value="" />
+    
+    <!-- Upgrade Code -->
+    <Upgrade Id="$(var.ProductUpgradeCode)">
+      <UpgradeVersion Minimum="1.0.0" Maximum="1.0.6" IncludeMinimum="yes" IncludeMaximum="no" Property="OLDERVERSIONBEINGUPGRADED" />
+      <UpgradeVersion Minimum="1.0.6" IncludeMinimum="no" IncludeMaximum="no" Property="NEWERVERSIONDETECTED" />
+    </Upgrade>
+    
+    <!-- Sequência de Upgrade -->
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize" />
+    </InstallExecuteSequence>
+    
+    <!-- Media -->
+    <Media Id="1" Cabinet="TascaVeredaPOS.cab" EmbedCab="yes" />
+    
+    <!-- Sumário da Instalação -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Iniciar o Tasca do Vereda POS" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    
+    <!-- Licença e EULA -->
+    <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="dialog.bmp" />
+  </Fragment>
+</Wix>

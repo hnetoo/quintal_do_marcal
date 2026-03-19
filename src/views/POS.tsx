@@ -171,72 +171,58 @@ const POS = () => {
 
   const handleCashClosingClick = async () => {
     try {
-      console.log('[FECHO] Iniciando leitura da tabela orders do dia...');
+      console.log('[FECHO] Iniciando fecho de caixa...');
+      addNotification('info', 'A processar fecho de caixa...');
       
-      // Buscar dados diretamente da tabela orders do Supabase
+      // Buscar pedidos fechados hoje do store local
       const today = new Date().toISOString().split('T')[0];
-      const { data: todayOrders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'FECHADO')
-        .gte('created_at', `${today}T00:00:00`)
-        .lte('created_at', `${today}T23:59:59`)
-        .order('created_at', { ascending: false });
+      const todayOrders = activeOrders.filter(order => {
+        if (order.status !== 'FECHADO') return false;
+        
+        // Verificar se o pedido é de hoje
+        const orderDate = new Date(order.timestamp || Date.now()).toISOString().split('T')[0];
+        return orderDate === today;
+      });
 
-      if (error) {
-        console.error('[FECHO] Erro ao buscar orders do dia:', error);
-        addNotification('error', 'Erro ao buscar dados do fecho.');
+      console.log('[FECHO] Pedidos encontrados:', todayOrders.length);
+      console.log('[FECHO] Pedidos:', todayOrders);
+
+      if (todayOrders.length === 0) {
+        addNotification('error', 'Nenhuma venda encontrada para fechar o caixa hoje.');
         return;
       }
-
-      if (!todayOrders || todayOrders.length === 0) {
-        addNotification('warning', 'Nenhuma venda fechada encontrada hoje na tabela orders.');
-        return;
-      }
-
-      console.log('[FECHO] Encontrados pedidos:', todayOrders.length, 'registros');
 
       // Agrupar por payment_method (Cash, Multicaixa, etc.)
       const groupedByPayment = todayOrders.reduce((acc: any, order: any) => {
-        const method = order.payment_method || 'OUTRO';
+        const method = order.paymentMethod || 'OUTRO';
         const total = parseFloat(order.total) || 0;
-        
-        if (!acc[method]) {
-          acc[method] = {
-            count: 0,
-            total: 0,
-            orders: []
-          };
-        }
-        
-        acc[method].count += 1;
-        acc[method].total += total;
-        acc[method].orders.push(order);
-        
+        if (!acc[method]) acc[method] = 0;
+        acc[method] += total;
         return acc;
       }, {});
 
+      console.log('[FECHO] Agrupamento por método:', groupedByPayment);
+
       // Formatar dados para impressão
-      const formattedOrders = todayOrders.map((order: any) => ({
+      const formattedOrders = todayOrders.map(order => ({
         id: order.id,
-        invoiceNumber: order.invoice_number || `INV-${order.id?.slice(-6)}`,
-        tableId: order.table_id,
+        tableId: String(order.tableId || ''),
         total: parseFloat(order.total) || 0,
-        paymentMethod: order.payment_method || 'OUTRO',
-        timestamp: order.created_at,
+        paymentMethod: order.paymentMethod || 'OUTRO',
+        timestamp: order.timestamp || new Date().toISOString(),
         items: [] // Não precisamos dos itens para o relatório de fecho
       }));
 
-      console.log('[FECHO] Dados agrupados por método:', groupedByPayment);
+      console.log('[FECHO] Dados formatados:', formattedOrders);
       console.log('[FECHO] Total geral:', formattedOrders.reduce((sum, o) => sum + o.total, 0));
 
-      // Chamar função de impressão existente com os dados do Supabase
+      // Chamar função de impressão existente com os dados
       printCashClosing(formattedOrders, settings, currentUser?.name || 'Operador');
       addNotification('success', `Relatório de Fecho gerado com ${todayOrders.length} vendas.`);
       
     } catch (err) {
       console.error('[FECHO] Erro ao processar fecho:', err);
-      addNotification('error', 'Falha ao processar fecho. Tente novamente.');
+      addNotification('error', `Falha ao processar fecho: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
   };
 
@@ -298,8 +284,20 @@ const POS = () => {
 
   const handleCloseSubAccount = (subAccount: any) => {
     console.log('[POS] Fechando subconta:', subAccount);
+    
+    // Verificar se a subconta tem itens antes de abrir o modal
+    if (!subAccount.items || subAccount.items.length === 0) {
+      addNotification('error', 'Esta subconta não tem itens para fechar.');
+      return;
+    }
+    
     setSelectedSubAccount(subAccount);
     setIsPaymentModalOpen(true);
+    
+    // Forçar atualização do estado para garantir que o modal apareça
+    setTimeout(() => {
+      console.log('[POS] Modal de pagamento deve estar aberto para subconta:', subAccount.subAccountName);
+    }, 100);
   };
 
   const handleTransferTable = () => {
@@ -767,35 +765,43 @@ const POS = () => {
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-glow"></div>
                         <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter truncate">Pedido #{activeOrderId.slice(-4)}</h3>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 truncate">
-                          <User size={12}/> {currentOrder?.subAccountName}
-                        </p>
-                        {currentOrder?.subAccountName !== 'Principal' && currentOrder?.items.length === 0 && (
-                          <button 
-                            onClick={() => removeSubAccount(currentOrder.id)}
-                            className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                            title="Remover Subconta"
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
-                      </div>
+                      {selectedSubAccount && (
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">{selectedSubAccount.subAccountName}</p>
+                      )}
                    </div>
-                   
                    <div className="flex gap-2">
                      <button 
-                        onClick={() => {
-                            printTableReview(currentOrder!, menu, settings);
-                        }} 
-                        className="p-3 bg-white/5 text-slate-400 hover:text-primary rounded-xl border border-white/10 transition-all"
-                        title="Imprimir Consulta"
+                       onClick={() => {
+                         console.log('[POS] Imprimindo consulta...');
+                         if (currentOrder) {
+                           printTableReview(currentOrder, settings, currentUser?.name || 'Operador');
+                         }
+                       }} 
+                       className="p-3 bg-white/5 text-slate-400 hover:text-primary rounded-xl border border-white/10 transition-all"
+                       title="Imprimir Consulta"
                      >
                         <Printer size={20}/>
                      </button>
-                     <button onClick={() => { setActiveOrder(null); setActiveTable(null); }} className="p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl border border-white/10 transition-all"><X size={20}/></button>
+                     {/* Botão de fecho melhorado */}
+                     {selectedSubAccount && selectedSubAccount.subAccountName !== 'Principal' ? (
+                       <button
+                         onClick={() => handleCloseSubAccount(selectedSubAccount)}
+                         className="p-3 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-xl border border-green-500/30 transition-all"
+                         title="Fechar Subconta"
+                       >
+                         <Check size={20}/>
+                       </button>
+                     ) : (
+                       <button 
+                         onClick={() => { setActiveOrder(null); setActiveTable(null); }} 
+                         className="p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl border border-white/10 transition-all"
+                         title="Fechar Mesa"
+                       >
+                         <X size={20}/>
+                       </button>
+                     )}
                    </div>
-                </div>
+                 </div>
                 
                 {tableSubAccounts.length > 1 && (
                   <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-2">
@@ -1148,7 +1154,7 @@ const POS = () => {
               throw error;
             }
             
-            // Remover subconta da visualização E atualizar estado
+            // Remover subconta da visualização (mesmo com itens, pois está sendo fechada)
             removeSubAccount(selectedSubAccount.id);
             
             // 🔄 FORÇAR ATUALIZAÇÃO DE ESTADO

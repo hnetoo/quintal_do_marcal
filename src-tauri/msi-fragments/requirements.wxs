@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Requisitos do Sistema -->
+    <Package Id="*" InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+    
+    <!-- Condições do Sistema -->
+    <Condition Message="Este aplicativo requer Windows 10 ou superior.">
+      <![CDATA[Installed OR (VersionNT >= 600)]]>
+    </Condition>
+    
+    <!-- Verificação de Arquitetura -->
+    <Condition Message="Este aplicativo requer Windows 64-bit.">
+      <![CDATA[Installed OR ProcessorArchitecture = "x64"]]>
+    </Condition>
+    
+    <!-- Requisitos de Memória -->
+    <Condition Message="Este aplicativo requer pelo menos 4GB de RAM.">
+      <![CDATA[Installed OR (PhysicalMemory >= 4096)]]>
+    </Condition>
+    
+    <!-- Requisitos de Espaço em Disco -->
+    <Condition Message="Este aplicativo requer pelo menos 1GB de espaço livre em disco.">
+      <![CDATA[Installed OR (FreeDiskSpace >= 1073741824)]]>
+    </Condition>
+    
+    <!-- Verificação do .NET Framework -->
+    <Property Id="NETFRAMEWORK45">
+      <RegistrySearch Id="NetFramework45" Root="HKLM" Key="SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Release" Type="raw" />
+    </Property>
+    
+    <Condition Message="Este aplicativo requer .NET Framework 4.5 ou superior.">
+      <![CDATA[Installed OR (NETFRAMEWORK45 >= 378389)]]>
+    </Condition>
+    
+    <!-- Verificação do Visual C++ Redistributable -->
+    <Property Id="VCREDIST2019_X64">
+      <RegistrySearch Id="VcRedist2019x64" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{e929e19e-79d5-4e4e-9792-5f523a8b2e67}" Name="DisplayVersion" Type="raw" />
+    </Property>
+    
+    <!-- Verificação do WebView2 -->
+    <Property Id="WEBVIEW2">
+      <RegistrySearch Id="WebView2" Root="HKLM" Key="SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00DF3F3A88DD}" Name="pv" Type="raw" />
+    </Property>
+    
+    <!-- Propriedades para Instalação -->
+    <Property Id="INSTALLFOLDER">
+      <RegistrySearch Id="RegistrySearch" Root="HKLM" Key="SOFTWARE\Vereda Systems\Tasca do Vereda POS" Name="InstallPath" Type="raw" />
+    </Property>
+    
+    <!-- Estrutura de Diretórios -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="Tasca do Vereda POS" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Tasca do Vereda POS"/>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+    
+    <!-- Componentes Principais -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="*">
+        <File Id="TascaVeredaPOS" Source="$(var.TascaVeredaPOS.TargetPath)" KeyPath="yes" />
+      </Component>
+      
+      <Component Id="HelperFiles" Guid="*">
+        <File Id="SQLiteDLL" Source="$(var.TascaVeredaPOS.TargetDir)sqlite3.dll" />
+        <File Id="WebView2Loader" Source="$(var.TascaVeredaPOS.TargetDir)WebView2Loader.dll" />
+        <File Id="MSVCP140" Source="$(var.TascaVeredaPOS.TargetDir)msvcp140.dll" />
+        <File Id="MSVCR140" Source="$(var.TascaVeredaPOS.TargetDir)msvcr140.dll" />
+        <File Id="VCRUNTIME140" Source="$(var.TascaVeredaPOS.TargetDir)vcruntime140.dll" />
+      </Component>
+      
+      <Component Id="ConfigFiles" Guid="*">
+        <File Id="ConfigJSON" Source="$(var.TascaVeredaPOS.TargetDir)config.json" />
+        <File Id="DatabaseSchema" Source="$(var.TascaVeredaPOS.TargetDir)schema.sql" />
+      </Component>
+    </DirectoryRef>
+    
+    <!-- Atalhos -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="*">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Tasca do Vereda POS"
+                  Description="Sistema POS para Gestão de Restaurante"
+                  Target="[#TascaVeredaPOS]"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="icon.ico" />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="Uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Tasca do Vereda POS" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="*">
+        <Shortcut Id="DesktopShortcut"
+                  Name="Tasca do Vereda POS"
+                  Description="Sistema POS para Gestão de Restaurante"
+                  Target="[#TascaVeredaPOS]"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="icon.ico" />
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Tasca do Vereda POS" Name="desktop" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    
+    <!-- Registro do Aplicativo -->
+    <Component Id="ApplicationRegistry" Guid="*">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Vereda Systems\Tasca do Vereda POS">
+        <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" />
+        <RegistryValue Name="Version" Type="string" Value="1.0.6" />
+        <RegistryValue Name="Publisher" Type="string" Value="Vereda Systems Angola" />
+      </RegistryKey>
+    </Component>
+    
+    <!-- Integração com Windows -->
+    <Component Id="WindowsIntegration" Guid="*">
+      <!-- Registro de Associação de Arquivos -->
+      <RegistryKey Root="HKCR" Key=".tvp">
+        <RegistryValue Type="string" Value="TascaVeredaPOS.File" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="TascaVeredaPOS.File">
+        <RegistryValue Type="string" Value="Tasca do Vereda POS File" />
+        <RegistryKey Key="DefaultIcon">
+          <RegistryValue Type="string" Value="[#TascaVeredaPOS],0" />
+        </RegistryKey>
+        <RegistryKey Key="shell\open\command">
+          <RegistryValue Type="string" Value="&quot;[#TascaVeredaPOS]&quot; &quot;%1&quot;" />
+        </RegistryKey>
+      </RegistryKey>
+      
+      <!-- Registro de Protocolo -->
+      <RegistryKey Root="HKCR" Key="tascapos">
+        <RegistryValue Type="string" Value="URL:Tasca do Vereda POS Protocol" />
+        <RegistryValue Name="URL Protocol" Type="string" Value="" />
+        <RegistryKey Key="shell\open\command">
+          <RegistryValue Type="string" Value="&quot;[#TascaVeredaPOS]&quot; &quot;%1&quot;" />
+        </RegistryKey>
+      </RegistryKey>
+    </Component>
+  </Fragment>
+</Wix>

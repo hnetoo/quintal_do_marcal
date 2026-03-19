@@ -845,8 +845,9 @@ export const useStore = create<StoreState>()(
         const order = get().activeOrders.find(o => o.id === orderId);
         if (!order) return;
         
-        if (order.items.length > 0) {
-          get().addNotification('error', 'Não é possível remover uma subconta com itens. Transfira ou anule os itens primeiro.');
+        // Permitir remover subconta se estiver fechada ou se não tiver itens
+        if (order.status !== 'FECHADO' && order.items.length > 0) {
+          get().addNotification('error', 'Não é possível remover uma subconta aberta com itens. Transfira ou feche a subconta primeiro.');
           return;
         }
 
