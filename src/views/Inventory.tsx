@@ -1011,6 +1011,27 @@ const Inventory = () => {
 
         {activeTab === 'categories' && (
           <div className="max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-orange-500">
+            {/* Botão para criar nova categoria */}
+            <div className="mb-6">
+              <button
+                onClick={handleCreateCategory}
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary to-orange-500 text-black rounded-xl hover:from-orange-500 hover:to-primary transition-all duration-300 font-medium shadow-lg shadow-primary/30 group transform hover:scale-[1.02]"
+              >
+                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                <span className="font-bold">Criar Nova Categoria</span>
+              </button>
+              <p className="text-center text-slate-400 text-xs mt-2">
+                Clique para adicionar uma nova categoria ao menu
+              </p>
+            </div>
+            
+            {/* Cabeçalho da lista de categorias */}
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">
+                Categorias Existentes ({categories.length})
+              </h3>
+            </div>
+            
             <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
               {categories.map(category => (
                 <div key={category.id} className="glass-panel rounded-xl border border-white/5 p-6 hover:border-primary/50 transition-all duration-300">
