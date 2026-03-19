@@ -374,10 +374,10 @@ const SystemHub = () => {
     const { settings, updateSettings, addNotification } = useStore();
     const [localSettings, setLocalSettings] = useState({
       ...settings,
-      // Valores padrão atualizados
-      supabaseUrl: settings.supabaseUrl || 'https://tboiuiwlqfzcvakxrsmj.supabase.co',
-      supabaseKey: settings.supabaseKey || 'sb_publishable_fBMKbbzNYBe8d1rzdWyerg_4We8tZEm',
-      customDigitalMenuUrl: settings.customDigitalMenuUrl || 'https://rest-ia.vercel.app/#/menu-public'
+      // Valores vazios - sem dados
+      supabaseUrl: '',
+      supabaseKey: '',
+      customDigitalMenuUrl: ''
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState<string | null>(null);
