@@ -5,7 +5,7 @@ import {
   LayoutDashboard, UtensilsCrossed, Package, Settings, 
   Banknote, Map as MapIcon, ChevronLeft, Menu, 
   LogOut, Target, Users as UsersIcon, TrendingUp, Terminal,
-  Database, Bell, ShoppingCart, BarChart3, FileText
+  Database, Bell, ShoppingCart, BarChart3, FileText, HardDrive
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { PermissionKey } from '../../types';
@@ -24,9 +24,10 @@ const Sidebar = () => {
     { to: "/profit-center", icon: <Target size={20} />, label: "Centro de Lucro", permission: 'FINANCE_VIEW' },
     { to: "/tables-layout", icon: <MapIcon size={20} />, label: "Mapa de Sala", permission: 'POS_SALES' },
     { to: "/inventory", icon: <Package size={20} />, label: "Menu & Stock", permission: 'STOCK_MANAGE' },
-        { to: "/finance", icon: <Banknote size={20} />, label: "Financeiro Legal", permission: 'FINANCE_VIEW' },
+    { to: "/finance", icon: <Banknote size={20} />, label: "Financeiro Legal", permission: 'FINANCE_VIEW' },
     { to: "/analytics", icon: <BarChart3 size={20} />, label: "ANALYTICS", permission: 'FINANCE_VIEW' },
     { to: "/reports", icon: <FileText size={20} />, label: "RELATÓRIOS", permission: 'FINANCE_VIEW' },
+    { to: "/database", icon: <HardDrive size={20} />, label: "Base de Dados", permission: 'SYSTEM_CONFIG' },
     { to: "/settings", icon: <Settings size={20} />, label: "Sistema", permission: 'SYSTEM_CONFIG' },
   ];
 

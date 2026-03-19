@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GlobalNotificationCenter } from './src/components/GlobalNotificationCenter';
 import Sidebar from './src/components/Sidebar';
+import DatabaseControlPanel from './src/components/DatabaseControlPanel';
 import Login from './src/views/Login';
 import OwnerLogin from './src/views/owner/OwnerLogin';
 import OwnerDashboard from './src/views/owner/OwnerDashboard';
@@ -85,6 +86,7 @@ const App = () => {
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/employees" element={<Employees />} />
                     <Route path="/settings" element={<SystemHub />} />
+                    <Route path="/database" element={<DatabaseControlPanel />} />
                     <Route path="/menu" element={<PublicMenu />} />
                     <Route path="/menu/:tableId" element={<PublicMenu />} />
                     <Route path="/customer-display/:tableId" element={<CustomerDisplay />} />
