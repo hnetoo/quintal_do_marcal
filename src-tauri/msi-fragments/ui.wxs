@@ -15,8 +15,8 @@
         <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Text="&amp;Próximo" Default="yes" />
         <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="Cancelar" />
         <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="WixUI_Bmp_Banner" />
-        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="Bem-vindo ao Assistente de Instalação do Tasca do Vereda POS. Este sistema irá ajudá-lo a gerenciar seu restaurante de forma eficiente e moderna." />
-        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Tasca do Vereda POS v1.0.6" />
+        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="Bem-vindo ao Assistente de Instalação do Rest-IA. Este sistema irá ajudá-lo a gerenciar seu restaurante de forma eficiente e moderna." />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Rest-IA v1.0.7" />
         <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
       </Dialog>
       

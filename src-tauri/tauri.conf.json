@@ -1,6 +1,6 @@
 {
-  "productName": "Tasca do Vereda POS",
-  "version": "1.0.6",
+  "productName": "Rest-IA",
+  "version": "1.0.7",
   "identifier": "ao.vereda.gestao.restaurante",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Tasca do Vereda POS v1.0.6",
+        "title": "Rest-IA v1.0.7",
         "label": "main",
         "width": 1920,
         "height": 1080,

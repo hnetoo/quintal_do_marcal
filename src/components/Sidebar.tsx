@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { PermissionKey } from '../../types';
-import appLogo from '/logo.png';
+import appLogo from '../assets/logo.png';
 
 const Sidebar = () => {
   const { logout, currentUser, settings, updateSettings, notifications } = useStore();

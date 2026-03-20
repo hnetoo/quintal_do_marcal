@@ -2,7 +2,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Fragment>
     <!-- Feature Principal -->
-    <Feature Id="ProductFeature" Title="Tasca do Vereda POS" Level="1">
+    <Feature Id="ProductFeature" Title="Rest-IA" Level="1">
       <ComponentRef Id="MainExecutable" />
       <ComponentRef Id="HelperFiles" />
       <ComponentRef Id="ConfigFiles" />
