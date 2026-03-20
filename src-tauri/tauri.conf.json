@@ -68,7 +68,6 @@
       "all": true
     },
     "shell": {
-      "all": true,
       "open": true
     },
     "fs": {
