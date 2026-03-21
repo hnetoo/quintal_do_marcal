@@ -35,10 +35,6 @@
   "bundle": {
     "active": true,
     "targets": ["msi"],
-    "icon": [
-      "icons/Logo-cb0f4f07-a29e-4f13-a59c-6e924140c8c8.jpg",
-      "icons/icon.ico"
-    ],
     "publisher": "Vereda Systems Angola",
     "category": "Business",
     "shortDescription": "Sistema POS para Gestão de Restaurante",
