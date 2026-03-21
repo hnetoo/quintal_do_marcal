@@ -323,7 +323,7 @@ const DashboardV2 = () => {
         totalOrders: metrics.totalOrders
       });
 
-      console.log('[TASCA] Dashboard V2: Dados sincronizados com sucesso.');
+      console.log('[REST IA] Dashboard V2: Dados sincronizados com sucesso.');
 
       console.log('[DashboardV2] Dados processados:', {
         totalRevenue,
@@ -392,7 +392,7 @@ const DashboardV2 = () => {
     <div className="min-h-screen bg-slate-900 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard V2 - Tasca do Vereda</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Dashboard V2 - REST IA</h1>
         <p className="text-slate-400">Painel de controle financeiro e operacional</p>
       </div>
 

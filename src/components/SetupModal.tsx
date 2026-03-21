@@ -206,7 +206,7 @@ const SetupModal: React.FC<SetupModalProps> = ({ isOpen, onClose, onComplete }) 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl">
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-500">
-              Tasca do Vereda POS v1.0.6
+              REST IA POS v1.0.6
             </p>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Database className="w-3 h-3" />

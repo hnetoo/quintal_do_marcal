@@ -45,10 +45,10 @@ export const useStore = create<AppStore>()(
       // Initial state
       currentUser: null,
       settings: {
-        restaurantName: 'Tasca do Vereda',
+        restaurantName: 'REST IA',
         address: 'Luanda, Angola',
         phone: '+244 923 456 789',
-        email: 'info@tascadovereda.ao',
+        email: 'info@rest-ia.ao',
         nif: '123456789',
         logo: defaultLogo,
         currency: 'AOA',

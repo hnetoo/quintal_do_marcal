@@ -48,7 +48,7 @@ const Certification = () => {
               <p><strong>Versão do Software:</strong> 1.0.5</p>
               <p><strong>Linguagem de Programação:</strong> TypeScript (React) / Rust (Tauri Core)</p>
               <p><strong>Base de Dados:</strong> SQLite (Local Imutable Store)</p>
-              <p><strong>Produtor:</strong> Vereda Systems Angola</p>
+              <p><strong>Produtor:</strong> HELDER NETO</p>
               <p><strong>NIF Produtor:</strong> {settings.nif}</p>
             </div>
           </div>

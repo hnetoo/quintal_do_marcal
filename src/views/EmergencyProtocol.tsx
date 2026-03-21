@@ -197,7 +197,7 @@ const EmergencyProtocol = () => {
             <AlertTriangle className="w-10 h-10 text-red-600 mr-4" />
             <div>
               <h1 className="text-3xl font-bold text-red-800">PROTOCOLO DE EMERGÊNCIA</h1>
-              <p className="text-red-600 text-lg">Estabilização Crítica da Tasca do Vereda</p>
+              <p className="text-red-600 text-lg">Estabilização Crítica da REST IA</p>
               <p className="text-red-500 text-sm mt-1">Use SOMENTE se a App e Supabase estiverem dessincronizados</p>
             </div>
           </div>
@@ -339,7 +339,7 @@ const EmergencyProtocol = () => {
                 <ul className="list-disc list-inside space-y-2 text-yellow-700">
                   <li><strong>localStorage</strong>: Limpeza total do armazenamento local</li>
                   <li><strong>sessionStorage</strong>: Limpeza da sessão atual</li>
-                  <li><strong>IndexedDB</strong>: Apagar bancos tasca*, vereda*, zustand*</li>
+                  <li><strong>IndexedDB</strong>: Apagar bancos rest*, ia*, zustand*</li>
                   <li><strong>Store Zustand</strong>: Reset completo do estado</li>
                 </ul>
               </div>

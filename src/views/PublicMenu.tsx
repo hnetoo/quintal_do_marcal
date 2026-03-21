@@ -6,7 +6,7 @@ import { fallbackProducts } from '../data/fallbackProducts';
 // Fallback para settings - evitar ReferenceError
 const defaultSettings = {
   currency: 'Kz',
-  restaurantName: 'Tasca do Vereda'
+  restaurantName: 'REST IA'
 };
 
 interface CartItem {
@@ -192,7 +192,7 @@ const PublicMenu = () => {
   window.open(whatsappUrl, '_blank');
 };
 
-  if (loading) return <div className="p-10 text-center font-bold text-white">A carregar menu da Tasca...</div>;
+  if (loading) return <div className="p-10 text-center font-bold text-white">A carregar menu da REST IA...</div>;
   
   if (!loading && items.length === 0) {
     return (
@@ -212,7 +212,7 @@ const PublicMenu = () => {
       <div className="bg-[#0a0f1a] p-5 flex items-center gap-4 border-b border-gray-800">
         <div className="w-14 h-14 rounded-full border-2 border-cyan-500 overflow-hidden flex-shrink-0 bg-gray-900 flex items-center justify-center">
           <img 
-            src="/logo-tasca-vereda.png" 
+            src="/logo-rest-ia.png" 
             className="w-full h-full object-cover" 
             alt="Logo"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -220,7 +220,7 @@ const PublicMenu = () => {
           <Package className="text-cyan-500" size={24} /> 
         </div>
         <div>
-          <h1 className="text-xl font-black text-white leading-none">TASCA DO VEREDA</h1>
+          <h1 className="text-xl font-black text-white leading-none">REST IA</h1>
           <p className="text-cyan-500 text-xs font-bold uppercase mt-1">Menu Digital</p>
           <p className="text-gray-400 text-[10px] leading-tight mt-1">
             Horário: Dom a Qua: 07:30 – 22:00 | Qui a Sáb: 07:30 – 00:00
@@ -265,7 +265,7 @@ const PublicMenu = () => {
                   className="w-full h-full object-cover object-center" 
                 />
               ) : (
-                <div className="w-full h-full bg-gray-900 flex items-center justify-center text-[10px] text-gray-600">TASCA DO VEREDA</div>
+                <div className="w-full h-full bg-gray-900 flex items-center justify-center text-[10px] text-gray-600">REST IA</div>
               )}
             </div>
             <div className="p-3 flex justify-between items-center">
@@ -327,7 +327,7 @@ const PublicMenu = () => {
             {/* Detalhes */}
             <div className="mb-6">
               <p className="text-gray-300 text-lg mb-4">
-                Produto selecionado da Tasca do Vereda. Clique abaixo para adicionar ao seu pedido.
+                Produto selecionado da REST IA. Clique abaixo para adicionar ao seu pedido.
               </p>
               <div className="text-center">
                 <p className="text-3xl font-bold text-cyan-400">

@@ -136,7 +136,7 @@ const AGTControl = () => {
                    <div className="flex items-center justify-center gap-4">
                       <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white"><Briefcase size={20}/></div>
                       <div>
-                         <p className="text-white font-black text-xs uppercase">Vereda Systems Angola, Lda</p>
+                         <p className="text-white font-black text-xs uppercase">HELDER NETO, Lda</p>
                          <p className="text-[8px] text-primary uppercase font-black tracking-widest">Parceiro Tecnológico AGT</p>
                       </div>
                    </div>

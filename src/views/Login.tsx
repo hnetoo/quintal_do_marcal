@@ -79,7 +79,7 @@ const Login = () => {
     return (
       <img 
         src={appLogo} 
-        alt="Tasca do Vereda" 
+        alt="REST IA" 
         className="w-auto h-24 mx-auto mb-8 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
       />
     );
@@ -99,7 +99,7 @@ const Login = () => {
         <div className="text-center mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
           {renderLogo()}
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
-            {settings?.restaurantName || 'Tasca do Vereda'}
+            {settings?.restaurantName || 'REST IA'}
           </h1>
           <p className="text-slate-400 mt-2 font-medium tracking-widest text-xs uppercase">Sistema de Gestão Inteligente</p>
         </div>
@@ -213,7 +213,7 @@ const Login = () => {
             )}
         </div>
         <p className="text-center text-slate-600 text-[10px] mt-8 uppercase font-bold tracking-widest cursor-help hover:text-slate-400 transition-colors">
-            Vereda Systems Angola © 2025
+            HELDER NETO © 2025
         </p>
       </div>
     </div>

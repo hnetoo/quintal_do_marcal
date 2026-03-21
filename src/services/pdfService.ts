@@ -107,7 +107,7 @@ export const generateSalesReport = async () => {
     doc.text('Relatório de Vendas', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -230,7 +230,7 @@ export const generatePurchaseReport = async () => {
     doc.text('Relatório de Despesas', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {

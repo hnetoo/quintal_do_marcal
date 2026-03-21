@@ -420,7 +420,7 @@ const Reports = () => {
     
     // Cabeçalho
     doc.setFontSize(16);
-    doc.text('Tasca do Vereda - Relatório de Vendas por Artigo', 14, 15);
+    doc.text('REST IA - Relatório de Vendas por Artigo', 14, 15);
     
     // Período
     doc.setFontSize(10);

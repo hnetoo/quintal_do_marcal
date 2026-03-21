@@ -228,7 +228,7 @@ export const useStore = create<StoreState>()(
         set(state => ({ auditLogs: [newLog, ...state.auditLogs].slice(0, 1000) }));
       },
       settings: {
-        restaurantName: "Tasca do Vereda",
+        restaurantName: "REST IA",
         appLogoUrl: defaultLogo,
         currency: "Kz",
         taxRate: 14,
@@ -1262,7 +1262,7 @@ restoreFromSupabase: async () => {
           tablesConfig: {},
           menuConfig: {},
           settings: {
-            restaurantName: 'Tasca do Vereda',
+            restaurantName: 'REST IA',
             currency: 'AOA',
             taxRate: 6.5,
             logo: defaultLogo,

@@ -214,7 +214,7 @@ export const useStore = create<StoreState>()(
         localDataService.saveAuditLog(newLog);
       },
       settings: {
-        restaurantName: "Tasca do Vereda",
+        restaurantName: 'REST IA',
         appLogoUrl: defaultLogo,
         currency: "Kz",
         taxRate: 14,

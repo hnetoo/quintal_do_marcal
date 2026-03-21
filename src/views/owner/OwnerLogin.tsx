@@ -13,7 +13,7 @@ const OwnerLogin = () => {
   const OWNER_CREDENTIALS = {
     pin: '0000',
     name: 'Proprietário',
-    business: 'Tasca do Vereda'
+    business: 'REST IA'
   };
 
   const handleLogin = async (e: React.FormEvent) => {

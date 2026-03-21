@@ -49,7 +49,7 @@ const Sidebar = () => {
             />
             <div className="flex flex-col min-w-0">
                 <span className="font-black text-white uppercase italic tracking-tighter text-base leading-tight">
-                    {settings.restaurantName || "Tasca do Vereda"}
+                    {settings.restaurantName || "REST IA"}
                 </span>
                 <span className="text-[8px] font-bold text-primary uppercase tracking-widest opacity-60">REST IA OS v1.0.6</span>
             </div>

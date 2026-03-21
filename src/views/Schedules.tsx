@@ -97,7 +97,7 @@ const Schedules = () => {
         <div>
           <div className="flex items-center gap-2 text-primary mb-2">
             <CalendarDays size={18} className="animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Resource Planner • Tasca OS</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Resource Planner • REST IA OS</span>
           </div>
           <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Escalas de Turno</h2>
         </div>

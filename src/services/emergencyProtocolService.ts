@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 
 /**
- * EMERGENCY PROTOCOL SERVICE - Estabilização Crítica da Tasca do Vereda
+ * EMERGENCY PROTOCOL SERVICE - Estabilização Crítica da REST IA
  * 
  * Protocolo de emergência para dessincronização entre App e Supabase
  * Implementa limpeza de cache, categorias padrão e validação UUID

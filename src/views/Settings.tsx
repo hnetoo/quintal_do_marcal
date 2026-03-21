@@ -474,7 +474,7 @@ return (
                      </div>
                      <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3">
                         <Link2 size={20} className="text-blue-500 shrink-0" />
-                        <p className="text-[9px] text-slate-400 italic leading-relaxed">Este URL será utilizado para gerar o QR Code oficial da sua Tasca, direcionando os clientes para o seu menu online sincronizado.</p>
+                        <p className="text-[9px] text-slate-400 italic leading-relaxed">Este URL será utilizado para gerar o QR Code oficial da sua REST IA, direcionando os clientes para o seu menu online sincronizado.</p>
                      </div>
                   </div>
                </div>

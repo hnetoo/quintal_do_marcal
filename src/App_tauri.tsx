@@ -199,7 +199,7 @@ const App = () => {
       -- Criar configurações se não existirem
       CREATE TABLE IF NOT EXISTS settings (
         id TEXT PRIMARY KEY DEFAULT 'main',
-        restaurant_name TEXT DEFAULT 'Tasca do Vereda',
+        restaurant_name TEXT DEFAULT 'REST IA',
         currency TEXT DEFAULT 'AOA',
         tax_rate REAL DEFAULT 0.14,
         address TEXT,
@@ -250,7 +250,7 @@ const App = () => {
 
       -- Inserir configurações padrão se não existirem
       INSERT OR IGNORE INTO settings (id, restaurant_name, currency, tax_rate) VALUES 
-      ('main', 'Tasca do Vereda', 'AOA', 0.14);
+      ('main', 'REST IA', 'AOA', 0.14);
     `;
 
     // Executar o schema SQL via RPC do Supabase
@@ -293,7 +293,7 @@ const App = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-800 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-400 animate-spin mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Tasca do Vereda POS</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">REST IA POS</h1>
           <p className="text-blue-200">Carregando aplicação...</p>
         </div>
       </div>
@@ -306,7 +306,7 @@ const App = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Database className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-white mb-2">Tasca do Vereda POS</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">REST IA POS</h1>
             <p className="text-blue-200">Configuração Inicial v1.0.6</p>
             <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
               <div className="flex items-center justify-center gap-2 text-yellow-300 text-sm">

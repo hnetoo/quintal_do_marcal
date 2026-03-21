@@ -108,7 +108,7 @@ const OfflineFirstStatus = () => {
             <Database className="w-8 h-8 text-blue-600 mr-3" />
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Status Offline-First</h1>
-              <p className="text-gray-600">Sistema Offline-First da Tasca do Vereda</p>
+              <p className="text-gray-600">Sistema Offline-First da REST IA</p>
             </div>
           </div>
           <div className={`flex items-center ${getStatusColor()}`}>

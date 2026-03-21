@@ -94,7 +94,7 @@ export const generateStaffReport = async () => {
     doc.text('Relatório de RH/Staff', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -217,7 +217,7 @@ export const generateExpensesReport = async () => {
     doc.text('Relatório de Despesas', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -341,7 +341,7 @@ export const generateInventoryReport = async () => {
     doc.text('Relatório de Inventário/Stock', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -474,7 +474,7 @@ export const generateCashFlowReport = async () => {
     doc.text('Relatório de Fluxo de Caixa', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -576,7 +576,7 @@ export const generateProfitReport = async () => {
     doc.text('Relatório de Lucros', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -669,7 +669,7 @@ export const generateStockMovementReport = async () => {
     doc.text('Relatório de Movimentação de Stock', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -793,7 +793,7 @@ export const generateWorkHoursReport = async () => {
     doc.text('Relatório de Horas Trabalhadas', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -916,7 +916,7 @@ export const generatePerformanceReport = async () => {
     doc.text('Relatório de Desempenho', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {
@@ -1096,7 +1096,7 @@ export const generateProductSalesReport = async (startDate?: string, endDate?: s
     doc.text('Relatório de Vendas por Artigo', 105, 20, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('Tasca Do Vereda - Sistema de Gestão', 105, 30, { align: 'center' });
+    doc.text('REST IA - Sistema de Gestão', 105, 30, { align: 'center' });
     
     // Data do relatório
     const reportDate = new Date().toLocaleDateString('pt-AO', {

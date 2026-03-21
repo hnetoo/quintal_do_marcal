@@ -148,7 +148,7 @@ const CustomerDisplay = () => {
                  <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em] opacity-80">Seja Bem-vindo à</p>
                </div>
                <h1 className="text-4xl lg:text-7xl font-black text-white italic uppercase tracking-tighter leading-none">
-                 {settings.restaurantName || "Tasca do Vereda"}
+                 {settings.restaurantName || "REST IA"}
                </h1>
             </div>
           </div>
