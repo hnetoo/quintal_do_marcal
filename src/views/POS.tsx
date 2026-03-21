@@ -399,25 +399,30 @@ const POS = () => {
     setSelectedCustomerId(undefined);
     
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
+    // Capturar variáveis no escopo do setTimeout
+    const capturedOrderId = orderToPrintId;
+    const capturedOrderData = orderData;
+    const capturedCustomerData = customerData;
+    
     setTimeout(() => {
       try {
         // Verificar se ainda temos o ID do pedido
-        if (!orderToPrintId) {
+        if (!capturedOrderId) {
           console.log('[POS] orderToPrintId não disponível, pulando impressão');
           return;
         }
         
-        console.log(`[POS] Disparando impressão direta do pedido ${orderToPrintId}`);
+        console.log(`[POS] Disparando impressão direta do pedido ${capturedOrderId}`);
         
         // Buscar pedido atualizado do estado para ter invoiceNumber
         const state = useStore.getState();
-        const updatedOrder = state.activeOrders.find(o => o.id === orderToPrintId);
+        const updatedOrder = state.activeOrders.find(o => o.id === capturedOrderId);
         
         // Usar pedido atualizado se disponível, senão usar dados locais
-        const orderToPrint = updatedOrder || orderData;
+        const orderToPrint = updatedOrder || capturedOrderData;
         const customerToPrint = updatedOrder 
           ? state.customers.find(c => c.id === updatedOrder.customerId)
-          : customerData;
+          : capturedCustomerData;
         
         console.log(`[POS] Pedido para impressão:`, {
           id: orderToPrint.id,
