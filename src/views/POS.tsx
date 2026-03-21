@@ -21,11 +21,10 @@ import 'jspdf-autotable';
 const POS = () => {
   const navigate = useNavigate();
   const { 
-    tables, activeTableId, setActiveTable, 
-    menu, categories, activeOrders, activeOrderId, setActiveOrder, 
-    createNewOrder, addToOrder, transferOrder, transferTable, closeTable,
-    addSubAccount, removeSubAccount,
-    checkoutTable, updateOrderPaymentMethod, settings, addNotification, customers, currentUser,
+    tables, categories, menu, activeOrders, customers, activeTableId, activeOrderId,
+    setActiveTable, setActiveOrder, createNewOrder, addToOrder, removeFromOrder, checkoutTable, 
+    updateTablePosition, addTable, updateTable, removeTable, closeTable,
+    currentUser, logout, settings, updateSettings, notifications, addNotification,
     paymentConfigs, customerDisplayMode, setCustomerDisplayMode
   } = useStore();
 
@@ -856,6 +855,9 @@ const POS = () => {
                             <p className="text-[11px] font-mono font-bold text-primary/80 mt-0.5">{formatKz(item.unitPrice * item.quantity)}</p>
                          </div>
                          <div className="flex items-center gap-3 bg-black/40 rounded-xl p-1 border border-white/5">
+                            <button onClick={() => removeFromOrder(currentOrder?.id || '', idx)} className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/30 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
                             <button onClick={() => addToOrder(activeTableId, dish!, -1)} className="w-8 h-8 rounded-lg bg-white/5 text-slate-500 hover:text-white transition-colors">-</button>
                             <span className="w-6 text-center font-black text-white text-xs">{item.quantity}</span>
                             <button onClick={() => handleAddToOrder(dish!, 1)} className="w-8 h-8 rounded-lg bg-primary text-black shadow-glow transition-transform active:scale-90">+</button>

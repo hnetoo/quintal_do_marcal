@@ -104,6 +104,7 @@ interface StoreState {
   createNewOrder: (tableId: number | null, name?: string, type?: OrderType) => string;
   transferOrder: (orderId: string, targetTableId: number) => void;
   addToOrder: (tableId: number | null, dish: Dish, quantity?: number, notes?: string, orderId?: string) => void;
+  removeFromOrder: (orderId: string, itemIndex: number) => void;
   checkoutTable: (orderId: string, paymentMethod: PaymentMethod, customerId?: string) => void;
   updateOrderPaymentMethod: (orderId: string, newMethod: PaymentMethod) => void;
   
@@ -487,6 +488,26 @@ export const useStore = create<StoreState>()(
             const profit = newItems.reduce((acc, i) => acc + ((i.unitPrice - i.unitCost) * i.quantity), 0);
             const taxTotal = newItems.reduce((acc, i) => acc + (i.taxAmount * i.quantity), 0);
             return { ...o, items: newItems, total, profit, taxTotal };
+          });
+          
+          return { activeOrders: newOrders };
+        });
+      },
+
+      removeFromOrder: (orderId, itemIndex) => {
+        set(state => {
+          const newOrders = state.activeOrders.map(o => {
+            if (o.id === orderId) {
+              const newItems = o.items.filter((_, idx) => idx !== itemIndex);
+              
+              // Recalcular totais
+              const total = newItems.reduce((acc, i) => acc + (i.unitPrice * i.quantity), 0);
+              const profit = newItems.reduce((acc, i) => acc + ((i.unitPrice - i.unitCost) * i.quantity), 0);
+              const taxTotal = newItems.reduce((acc, i) => acc + (i.taxAmount * i.quantity), 0);
+              
+              return { ...o, items: newItems, total, profit, taxTotal };
+            }
+            return o;
           });
           
           return { activeOrders: newOrders };
