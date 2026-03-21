@@ -43,7 +43,7 @@ const Sidebar = () => {
         {!isCollapsed && (
           <div className="flex items-center gap-4 min-w-0">
             <img 
-                src={appLogo} 
+                src={settings.appLogoUrl || appLogo} 
                 alt="Logo" 
                 className="w-12 h-12 object-contain rounded-xl shrink-0 shadow-glow border border-white/10 bg-white/5 p-1" 
             />
