@@ -3500,7 +3500,7 @@ dependencies = [
 
 [[package]]
 name = "rest-ia"
-version = "1.0.7"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "chrono",

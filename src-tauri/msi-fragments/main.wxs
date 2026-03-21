@@ -82,9 +82,9 @@
     <!-- Registry Keys para Desinstalação -->
     <Component Id="UninstallRegistry" Guid="*">
       <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{$(var.ProductUpgradeCode)}">
-        <RegistryValue Name="DisplayName" Type="string" Value="Tasca do Vereda POS" />
-        <RegistryValue Name="DisplayVersion" Type="string" Value="1.0.6" />
-        <RegistryValue Name="Publisher" Type="string" Value="Vereda Systems Angola" />
+        <RegistryValue Name="DisplayName" Type="string" Value="REST IA" />
+        <RegistryValue Name="DisplayVersion" Type="string" Value="1.0.1" />
+        <RegistryValue Name="Publisher" Type="string" Value="HELDER NETO" />
         <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
         <RegistryValue Name="UninstallString" Type="string" Value="MsiExec.exe /X{$(var.ProductUpgradeCode)}" />
         <RegistryValue Name="DisplayIcon" Type="string" Value="[INSTALLFOLDER]\icon.ico" />
@@ -101,8 +101,8 @@
     
     <!-- Upgrade Code -->
     <Upgrade Id="$(var.ProductUpgradeCode)">
-      <UpgradeVersion Minimum="1.0.0" Maximum="1.0.6" IncludeMinimum="yes" IncludeMaximum="no" Property="OLDERVERSIONBEINGUPGRADED" />
-      <UpgradeVersion Minimum="1.0.6" IncludeMinimum="no" IncludeMaximum="no" Property="NEWERVERSIONDETECTED" />
+      <UpgradeVersion Minimum="1.0.0" Maximum="1.0.1" IncludeMinimum="yes" IncludeMaximum="no" Property="OLDERVERSIONBEINGUPGRADED" />
+      <UpgradeVersion Minimum="1.0.1" IncludeMinimum="no" IncludeMaximum="no" Property="NEWERVERSIONDETECTED" />
     </Upgrade>
     
     <!-- Sequência de Upgrade -->
@@ -111,11 +111,11 @@
     </InstallExecuteSequence>
     
     <!-- Media -->
-    <Media Id="1" Cabinet="TascaVeredaPOS.cab" EmbedCab="yes" />
+    <Media Id="1" Cabinet="REST_IA.cab" EmbedCab="yes" />
     
     <!-- Sumário da Instalação -->
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Iniciar o Tasca do Vereda POS" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Iniciar o REST IA" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     
     <!-- Licença e EULA -->

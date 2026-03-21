@@ -1,6 +1,6 @@
 {
   "productName": "Rest-IA",
-  "version": "1.0.7",
+  "version": "1.0.1",
   "identifier": "ao.vereda.gestao.restaurante",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Rest-IA v1.0.7",
+        "title": "Rest-IA v1.0.1",
         "label": "main",
         "width": 1920,
         "height": 1080,
