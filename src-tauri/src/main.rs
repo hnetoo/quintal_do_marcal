@@ -39,7 +39,9 @@ async fn load_config() -> Result<Value, String> {
 }
 
 fn main() {
-    tauri::Builder::default()
+    println!("🚀 Iniciando Rest-IA Desktop...");
+    
+    let result = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
@@ -50,6 +52,14 @@ fn main() {
             save_config,
             load_config
         ])
-        .run(tauri::generate_context!())
-        .expect("erro ao iniciar aplicação tauri");
+        .run(tauri::generate_context!());
+    
+    match result {
+        Ok(_) => println!("✅ Rest-IA iniciado com sucesso!"),
+        Err(e) => {
+            eprintln!("❌ Erro ao iniciar aplicação Tauri: {}", e);
+            // Tentar mostrar diálogo de erro se possível
+            std::process::exit(1);
+        }
+    }
 }
