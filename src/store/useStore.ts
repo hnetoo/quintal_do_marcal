@@ -550,15 +550,13 @@ export const useStore = create<StoreState>()(
           };
         });
 
-        // PERSISTÊNCIA LOCAL PRIMÁRIA - SEMPRE FUNCIONA
+        // PERSISTÊNCIA LOCAL APENAS - SQLite First
         const finalOrder = get().activeOrders.find(o => o.id === orderId);
         if (finalOrder && finalOrder.status === 'closed') {
-          // Salvar localmente SEMPRE
+          // Salvar localmente via SQLite
           await sqliteService.saveState(get());
           console.log('✅ Venda salva localmente com sucesso');
           get().addNotification('success', 'Venda finalizada com sucesso');
-          
-          // SYNC OPCIONAL - Apenas se configurado E se não der erro
           if (get().settings.supabaseUrl && get().settings.supabaseKey && get().settings.autoBackup) {
             try {
               // Verificar se DB local está "cheia" (mais de 1000 ordens por exemplo)
@@ -574,124 +572,6 @@ export const useStore = create<StoreState>()(
             }
           }
         }
-          const currentUser = get().currentUser;
-          const sellerName = currentUser?.name || finalOrder.subAccountName || 'OPERADOR_PADRAO';
-          
-          // USAR MÉTODO DE PAGAMENTO REAL - NÃO FORÇAR
-          const paymentMethod = finalOrder.paymentMethod || 'NUMERARIO';
-          
-          // USAR NOME DO CLIENTE REAL - NÃO FORÇAR PADRÃO
-          const customerName = finalOrder.subAccountName || 'CLIENTE_PADRAO';
-          
-          // DEBUG COMPLETO
-          console.log('=== VENDA PARA GRAVAR ===');
-          console.log('ID:', finalOrder.id);
-          console.log('OPERADOR:', sellerName);
-          console.log('CLIENTE:', customerName);
-          console.log('MÉTODO PAGAMENTO:', paymentMethod);
-          console.log('TOTAL:', finalOrder.total);
-          
-          // FORÇAR INSERT DIRETO - APENAS COLUNAS REAIS DO SCHEMA
-          try {
-            const currentUser = get().currentUser;
-            const orderData = {
-              id: finalOrder.id,
-              customer_name: customerName,
-              customer_phone: '999999999',
-              delivery_address: 'ENDEREÇO_PADRAO',
-              total_amount: finalOrder.total,
-              status: 'closed',
-              payment_method: paymentMethod,
-              user_id: currentUser?.id || null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-            
-            console.log('=== DADOS PARA INSERT ===');
-            console.log('OBJETO COMPLETO:', orderData);
-            
-            const { data, error } = await supabase
-              .from('orders')
-              .insert(orderData)
-              .select();
-              
-            if (error) {
-              console.error('❌ ERRO NA GRAVAÇÃO:', error);
-              console.error('❌ DETALHES DO ERRO:', JSON.stringify(error, null, 2));
-              get().addNotification('error', `FALHA AO GRAVAR VENDA: ${error.message}`);
-            } else {
-              console.log('✅ VENDA GRAVADA COM SUCESSO:', data);
-              get().addNotification('success', 'Venda gravada com sucesso no Supabase');
-            }
-          } catch (error) {
-            console.error('❌ FALHA CRÍTICA:', error);
-            get().addNotification('error', `FALHA CRÍTICA: ${error.message}`);
-          }
-            
-            // PERSISTIR ITENS DO PEDIDO NA TABELA order_items - GARANTIR EXECUÇÃO IMEDIATA
-            console.log('[POS] Persistindo itens do pedido:', finalOrder.items);
-            
-            if (finalOrder.items && finalOrder.items.length > 0) {
-              const orderItems = finalOrder.items.map(item => ({
-                order_id: finalOrder.id,
-                product_id: item.dish.id,
-                quantity: item.quantity,
-                unit_price: item.dish.price,
-                total_price: item.dish.price * item.quantity
-              }));
-
-              console.log('[POS] Itens formatados para inserção:', orderItems);
-
-              // Inserir todos os itens do pedido - EXECUÇÃO IMEDIATA
-              const { data: insertedItems, error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItems)
-                .select();
-
-              if (itemsError) {
-                console.error('[POS] Erro ao persistir itens no Supabase:', itemsError);
-                console.error('[POS] Detalhes do erro:', {
-                  code: itemsError.code,
-                  message: itemsError.message,
-                  details: itemsError.details,
-                  hint: itemsError.hint
-                });
-                
-                // Tentar inserir um por um se falhar em lote
-                const insertIndividualItems = async () => {
-                  for (const orderItem of orderItems) {
-                    try {
-                      const { error: singleError } = await supabase
-                        .from('order_items')
-                        .insert(orderItem);
-                      
-                      if (singleError) {
-                        console.error('[POS] Erro ao inserir item individual:', singleError, orderItem);
-                      } else {
-                        console.log('[POS] Item individual inserido com sucesso:', orderItem);
-                      }
-                    } catch (singleCatchError) {
-                      console.error('[POS] Exceção ao inserir item individual:', singleCatchError, orderItem);
-                    }
-                  }
-                };
-
-                // Executar inserção individual como fallback
-                await insertIndividualItems();
-                return { success: false, error: itemsError };
-              } else {
-                console.log('[POS] Itens do pedido persistidos com sucesso:', {
-                  count: insertedItems?.length || 0,
-                  items: insertedItems
-                });
-                return { success: true, data: insertedItems };
-              }
-            } else {
-              console.warn('[POS] Pedido sem itens para persistir:', finalOrder);
-              return { success: true, data: null };
-            }
-        }
-        return { success: true, data: null };
       },
 
       updateOrderPaymentMethod: (orderId, newMethod) => {
