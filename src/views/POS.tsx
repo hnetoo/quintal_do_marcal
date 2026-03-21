@@ -434,7 +434,6 @@ const POS = () => {
         addNotification('error', 'Falha na impressão. Tente novamente.');
       }
     }, 500);
-  };
 
   const formatKz = (val: number) => new Intl.NumberFormat('pt-AO', { 
     style: 'currency', currency: 'AOA', maximumFractionDigits: 0 
@@ -1140,6 +1139,7 @@ const POS = () => {
 
   </div>
 );
+
 };
 
 export default POS;
