@@ -21,7 +21,7 @@
 - **Product Name**: Rest-IA
 - **Window Title**: Rest-IA v1.0.1
 - **Package Name**: rest-ia
-- **Identifier**: ao.vereda.gestao.restaurante
+- **Identifier**: ao.rest-ia.gestao.restaurante
 
 #### 🎨 **Interface:**
 - **Nome Padrão**: REST IA

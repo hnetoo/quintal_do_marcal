@@ -1,12 +1,7 @@
-
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { Table, Order, OrderItem, Dish, Customer, User, Employee, StockItem, Category, SystemSettings, TableStatus, OrderType, OrderStatus, PaymentMethod, CashFlowStatus } from '../types';
 import { sqliteService } from '../lib/sqliteService';
-import { supabase } from '../lib/supabaseService';
-import { versionControlService } from '../lib/versionControlService';
-import { sqlMigrationService } from '../lib/sqlMigrationService';
-import { databaseService } from '../lib/databaseService';
-import { Table, Order, Dish, Customer, PaymentMethod, User, SystemSettings, Notification, MenuCategory, OrderType, Employee, AttendanceRecord, StockItem, Reservation, WorkShift, OrderItem, PermissionTemplate, AuditLog, PaymentMethodConfig, Expense, ExpenseCategory, ExpenseStatus } from '../../types';
 import { MOCK_MENU, MOCK_TABLES, MOCK_CUSTOMERS, MOCK_USERS, MOCK_CATEGORIES, MOCK_STOCK, MOCK_RESERVATIONS } from '../../constants';
 import defaultLogo from '../assets/logo.png';
 
@@ -403,13 +398,13 @@ export const useStore = create<StoreState>()(
       createNewOrder: (tableId, name, type: OrderType = 'LOCAL') => {
         const id = `ord-${Date.now()}`;
         const newOrder: Order = {
-          id, tableId, type, items: [], status: 'ABERTO' as const, timestamp: new Date(),
+          id, tableId, type, items: [], status: 'open' as const, timestamp: new Date(),
           total: 0, taxTotal: 0, profit: 0, subAccountName: name || 'Principal'
         };
         set(state => ({
           activeOrders: [...state.activeOrders, newOrder],
           activeOrderId: id,
-          tables: tableId ? state.tables.map(t => t.id === tableId ? { ...t, status: 'OCUPADO' as const } : t) : state.tables
+          tables: tableId ? state.tables.map(t => t.id === tableId ? { ...t, status: 'occupied' as const } : t) : state.tables
         }));
         return id;
       },
@@ -422,13 +417,13 @@ export const useStore = create<StoreState>()(
           const oldTableId = order.tableId;
           const newOrders = state.activeOrders.map(o => o.id === orderId ? { ...o, tableId: targetTableId } : o);
           
-          const oldTableStillHasOrders = newOrders.some(o => o.tableId === oldTableId && o.status === 'ABERTO');
+          const oldTableStillHasOrders = newOrders.some(o => o.tableId === oldTableId && o.status === 'open');
           
           return {
             activeOrders: newOrders,
             tables: state.tables.map(t => {
-              if (t.id === targetTableId) return { ...t, status: 'OCUPADO' as const };
-              if (t.id === oldTableId && !oldTableStillHasOrders) return { ...t, status: 'LIVRE' as const };
+              if (t.id === targetTableId) return { ...t, status: 'occupied' as const };
+              if (t.id === oldTableId && !oldTableStillHasOrders) return { ...t, status: 'free' as const };
               return t;
             }),
             activeTableId: targetTableId
@@ -445,17 +440,17 @@ export const useStore = create<StoreState>()(
              const newId = `ord-${Date.now()}`;
              const newOrder: Order = {
                id: newId, tableId, type: 'LOCAL', items: [{
-                  dishId: dish.id, quantity, status: 'PENDENTE' as const, notes,
+                  dish: dish, quantity, status: 'PENDENTE' as const, notes,
                   unitPrice: dish.price, unitCost: dish.costPrice,
                   taxAmount: dish.price * (state.settings.taxRate / 100)
-               }], status: 'ABERTO' as const, timestamp: new Date(),
+               }], status: 'open' as const, timestamp: new Date(),
                total: dish.price * quantity, taxTotal: (dish.price * (state.settings.taxRate / 100)) * quantity, 
                profit: (dish.price - dish.costPrice) * quantity, subAccountName: 'Principal'
              };
              return { 
                 activeOrders: [...state.activeOrders, newOrder],
                 activeOrderId: newId,
-                tables: state.tables.map(t => t.id === tableId ? { ...t, status: 'OCUPADO' as const } : t)
+                tables: state.tables.map(t => t.id === tableId ? { ...t, status: 'occupied' as const } : t)
              };
           }
 
@@ -482,7 +477,7 @@ export const useStore = create<StoreState>()(
               get().addNotification('success', `Quantidade de ${dish.name} incrementada.`);
             } else {
               newItems = [...o.items, {
-                dishId: dish.id, quantity, status: 'PENDENTE' as const, notes,
+                dish: dish, quantity, status: 'PENDENTE' as const, notes,
                 unitPrice: dish.price, unitCost: dish.costPrice,
                 taxAmount: dish.price * (state.settings.taxRate / 100)
               }];
@@ -519,12 +514,12 @@ export const useStore = create<StoreState>()(
           );
           
           const tableId = order.tableId;
-          const tableHasMoreOrders = newOrders.some(o => o.tableId === tableId && o.status === 'ABERTO');
+          const tableHasMoreOrders = newOrders.some(o => o.tableId === tableId && o.status === 'open');
 
           return {
             customers: newCustomers,
             activeOrders: newOrders,
-            tables: tableId ? state.tables.map(t => t.id === tableId && !tableHasMoreOrders ? { ...t, status: 'LIVRE' as const } : t) : state.tables,
+            tables: tableId ? state.tables.map(t => t.id === tableId && !tableHasMoreOrders ? { ...t, status: 'free' as const } : t) : state.tables,
             invoiceCounter: count + 1,
             activeTableId: null,
             activeOrderId: null,
@@ -534,7 +529,7 @@ export const useStore = create<StoreState>()(
 
         // PERSISTÊNCIA IMEDIATA NO SUPABASE - USAR VALORES REAIS
         const finalOrder = get().activeOrders.find(o => o.id === orderId);
-        if (finalOrder && finalOrder.status === 'FECHADO') {
+        if (finalOrder && finalOrder.status === 'closed') {
           // USAR OPERADOR REAL - NÃO FORÇAR PADRÃO
           const currentUser = get().currentUser;
           const sellerName = currentUser?.name || finalOrder.subAccountName || 'OPERADOR_PADRAO';
@@ -698,7 +693,7 @@ export const useStore = create<StoreState>()(
         const tableToRemove = get().tables.find(t => t.id === id);
         if (!tableToRemove) return;
 
-        const hasActiveOrders = get().activeOrders.some(o => o.tableId === id && o.status === 'ABERTO');
+        const hasActiveOrders = get().activeOrders.some(o => o.tableId === id && o.status === 'open');
         if (hasActiveOrders) {
           get().addNotification('error', `Não é possível apagar a mesa ${tableToRemove.name} porque tem pedidos ativos.`);
           return;
@@ -724,7 +719,7 @@ export const useStore = create<StoreState>()(
         if (!tableToClose) return;
 
         // Verificar se existem pedidos com itens (que não podem ser fechados sem pagamento)
-        const hasOrdersWithItems = get().activeOrders.some(o => o.tableId === id && o.status === 'ABERTO' && o.items.length > 0);
+        const hasOrdersWithItems = get().activeOrders.some(o => o.tableId === id && o.status === 'open' && o.items.length > 0);
         
         if (hasOrdersWithItems) {
           get().addNotification('error', `Não é possível fechar a mesa ${tableToClose.name} porque tem pedidos ativos com itens.`);
@@ -734,9 +729,9 @@ export const useStore = create<StoreState>()(
         versionControlService.createRestorePoint(`Fecho da mesa: ${tableToClose.name}`, get());
         
         set(state => ({
-          tables: state.tables.map(t => t.id === id ? { ...t, status: 'LIVRE' as const } : t),
+          tables: state.tables.map(t => t.id === id ? { ...t, status: 'free' as const } : t),
           // Remove pedidos vazios da mesa
-          activeOrders: state.activeOrders.filter(o => !(o.tableId === id && o.status === 'ABERTO')),
+          activeOrders: state.activeOrders.filter(o => !(o.tableId === id && o.status === 'open')),
           activeTableId: state.activeTableId === id ? null : state.activeTableId,
           activeOrderId: state.activeTableId === id ? null : state.activeOrderId
         }));
@@ -755,7 +750,7 @@ export const useStore = create<StoreState>()(
 
       cancelEmptyTable: (tableId: number) => {
         const state = get();
-        const order = state.activeOrders.find(o => o.tableId === tableId && o.status === 'ABERTO');
+        const order = state.activeOrders.find(o => o.tableId === tableId && o.status === 'open');
         
         if (!order) {
           state.addNotification('error', 'Nenhum pedido aberto encontrado para esta mesa.');
@@ -769,7 +764,7 @@ export const useStore = create<StoreState>()(
 
         set(state => ({
           activeOrders: state.activeOrders.filter(o => o.id !== order.id),
-          tables: state.tables.map(t => t.id === tableId ? { ...t, status: 'LIVRE' as const } : t),
+          tables: state.tables.map(t => t.id === tableId ? { ...t, status: 'free' as const } : t),
           activeTableId: state.activeTableId === tableId ? null : state.activeTableId,
           activeOrderId: state.activeOrderId === order.id ? null : state.activeOrderId
         }));
@@ -783,7 +778,7 @@ export const useStore = create<StoreState>()(
       },
 
       transferTable: (fromTableId, toTableId) => {
-        const fromOrders = get().activeOrders.filter(o => o.tableId === fromTableId && o.status === 'ABERTO');
+        const fromOrders = get().activeOrders.filter(o => o.tableId === fromTableId && o.status === 'open');
         if (fromOrders.length === 0) {
           get().addNotification('error', 'Não existem pedidos abertos na mesa de origem.');
           return;
@@ -794,13 +789,13 @@ export const useStore = create<StoreState>()(
 
         set(state => ({
           activeOrders: state.activeOrders.map(o => 
-            (o.tableId === fromTableId && o.status === 'ABERTO') 
+            (o.tableId === fromTableId && o.status === 'open') 
               ? { ...o, tableId: toTableId } 
               : o
           ),
           tables: state.tables.map(t => {
-            if (t.id === fromTableId) return { ...t, status: 'LIVRE' as const };
-            if (t.id === toTableId) return { ...t, status: 'OCUPADO' as const };
+            if (t.id === fromTableId) return { ...t, status: 'free' as const };
+            if (t.id === toTableId) return { ...t, status: 'occupied' as const };
             return t;
           })
         }));
@@ -846,7 +841,7 @@ export const useStore = create<StoreState>()(
         if (!order) return;
         
         // Permitir remover subconta se estiver fechada ou se não tiver itens
-        if (order.status !== 'FECHADO' && order.items.length > 0) {
+        if (order.status !== 'closed' && order.items.length > 0) {
           get().addNotification('error', 'Não é possível remover uma subconta aberta com itens. Transfira ou feche a subconta primeiro.');
           return;
         }
@@ -1326,7 +1321,7 @@ restoreFromSupabase: async () => {
           invoiceCounter: 1,
           activeTableId: null,
           activeOrderId: null,
-          tables: state.tables.map(t => ({ ...t, status: 'LIVRE' as const }))
+          tables: state.tables.map(t => ({ ...t, status: 'free' as const }))
         }));
       }
     }),

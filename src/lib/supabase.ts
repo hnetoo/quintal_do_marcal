@@ -26,7 +26,7 @@ export const supabase = createClient(
     },
     global: {
       headers: {
-        'X-Client-Info': 'rest-ia-app/1.0.0'
+        'X-Client-Info': 'rest-ia-app/1.0.1'
       }
     }
   }

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabaseService';
+import { Table, Order, OrderItem, Dish, Customer, User, Employee, StockItem, Category, SystemSettings, TableStatus, OrderType, OrderStatus, PaymentMethod, CashFlowStatus } from '../types';
 import { 
   Search, Minus, Plus, CreditCard, LayoutGrid, Printer, 
   Banknote, X, Utensils, MoveHorizontal, Sparkles, Loader2,
@@ -10,7 +11,6 @@ import {
   UserPlus, History, LogOut, CheckCircle2, MoreVertical,
   ChevronLeft, Layout, Clock, QrCode, ArrowRightLeft, User, Users, Monitor, Shield, Settings, Trash2, Check, DollarSign
 } from 'lucide-react';
-import { Dish, PaymentMethod, Order, Table, Customer } from '../../types';
 import { printThermalInvoice, printTableReview, printCashClosing } from '../lib/printService';
 import ThermalPrinterManager from '../lib/thermalPrinterConfig';
 import LazyImage from '../components/LazyImage';
@@ -144,7 +144,7 @@ const POS = () => {
   const closedToday = useMemo(() => {
     const todayStr = new Date().toLocaleDateString('en-CA');
     return activeOrders.filter(o => {
-      if (o.status !== 'FECHADO') return false;
+      if (o.status !== 'closed') return false;
       const orderDate = new Date(o.timestamp).toLocaleDateString('en-CA');
       return orderDate === todayStr;
     });
@@ -152,7 +152,7 @@ const POS = () => {
 
   const handleTableClick = (table: Table) => {
     setActiveTable(table.id);
-    const existingOrder = activeOrders.find(o => o.tableId === table.id && o.status === 'ABERTO');
+    const existingOrder = activeOrders.find(o => o.tableId === table.id && o.status === 'open');
     if (existingOrder) {
       setActiveOrder(existingOrder.id);
     } else {
@@ -177,7 +177,7 @@ const POS = () => {
       // Buscar pedidos fechados hoje do store local
       const today = new Date().toISOString().split('T')[0];
       const todayOrders = activeOrders.filter(order => {
-        if (order.status !== 'FECHADO') return false;
+        if (order.status !== 'closed') return false;
         
         // Verificar se o pedido é de hoje
         const orderDate = new Date(order.timestamp || Date.now()).toISOString().split('T')[0];
@@ -318,7 +318,7 @@ const POS = () => {
 
   const tableSubAccounts = useMemo(() => {
     if (!activeTableId) return [];
-    return activeOrders.filter(o => o.tableId === activeTableId && o.status === 'ABERTO');
+    return activeOrders.filter(o => o.tableId === activeTableId && o.status === 'open');
   }, [activeOrders, activeTableId]);
 
   const handleCheckoutFinal = async (method: PaymentMethod, customerId?: string) => {
@@ -534,7 +534,7 @@ const POS = () => {
             <button 
               onClick={() => {
                 const state = useStore.getState();
-                const lastOrder = state.activeOrders.find(o => o.status === 'FECHADO');
+                const lastOrder = state.activeOrders.find(o => o.status === 'closed');
                 if (lastOrder) {
                   console.log('[POS] Reimprimindo último pedido:', lastOrder.invoiceNumber);
                   handleDirectPrint(lastOrder, state.customers.find(c => c.id === lastOrder.customerId));
@@ -688,7 +688,7 @@ const POS = () => {
            {!activeTableId ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 md:gap-6 animate-in fade-in zoom-in duration-700">
                  {tables.map((table) => {
-                    const isOccupied = activeOrders.some(o => o.tableId === table.id && o.status === 'ABERTO');
+                    const isOccupied = activeOrders.some(o => o.tableId === table.id && o.status === 'open');
                     return (
                       <button 
                         key={table.id} 
@@ -950,7 +950,7 @@ const POS = () => {
             
             <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 mb-10 max-h-[40vh] overflow-y-auto p-2 no-scrollbar">
               {tables.filter(t => t.id !== activeTableId).map(table => {
-                const isOccupied = activeOrders.some(o => o.tableId === table.id && o.status === 'ABERTO');
+                const isOccupied = activeOrders.some(o => o.tableId === table.id && o.status === 'open');
                 return (
                   <button 
                     key={table.id}
@@ -1145,7 +1145,7 @@ const POS = () => {
               .from('orders')
               .update({ 
                 payment_method: paymentMethod,
-                status: 'FECHADO'
+                status: 'closed'
               })
               .eq('id', selectedSubAccount.id);
               
@@ -1171,7 +1171,7 @@ const POS = () => {
                 .from('orders')
                 .update({ 
                   payment_method: paymentMethod,
-                  status: 'FECHADO'
+                  status: 'closed'
                 })
                 .eq('id', currentOrder.id);
                 
