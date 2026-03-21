@@ -401,6 +401,12 @@ const POS = () => {
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
     setTimeout(() => {
       try {
+        // Verificar se ainda temos o ID do pedido
+        if (!orderToPrintId) {
+          console.log('[POS] orderToPrintId não disponível, pulando impressão');
+          return;
+        }
+        
         console.log(`[POS] Disparando impressão direta do pedido ${orderToPrintId}`);
         
         // Buscar pedido atualizado do estado para ter invoiceNumber
