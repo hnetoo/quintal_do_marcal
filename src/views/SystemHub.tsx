@@ -3,7 +3,7 @@ import {
   Settings, Users, Shield, FileText, Cloud, Terminal,
   ChevronRight, Building, UserCheck, Lock, Database, Code,
   Plus, Edit2, Trash2, X, Save, FileBadge, Landmark, Info, Download,
-  ChefHat, Upload, AlertCircle, Activity
+  ChefHat, Upload, AlertCircle, Activity, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { generateSAFT, downloadSAFT } from '../lib/saftService';
@@ -32,6 +32,7 @@ const SystemHub = () => {
   const IdentitySettings = () => {
     const [localSettings, setLocalSettings] = useState(settings);
     const [isSaving, setIsSaving] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleSaveSettings = async (e: React.FormEvent) => {
@@ -95,9 +96,48 @@ const SystemHub = () => {
     };
 
     return (
-      <div className="glass-panel rounded-2xl p-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Identidade Geral</h2>
-        <form onSubmit={handleSaveSettings} className="max-w-3xl space-y-10">
+      <div className="glass-panel rounded-2xl p-8 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-white">Identidade Geral</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const newZoom = Math.max(0.8, zoomLevel - 0.1);
+                setZoomLevel(newZoom);
+              }}
+              className="p-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all"
+              title="Reduzir zoom"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span className="text-white text-sm font-medium px-2">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const newZoom = Math.min(1.5, zoomLevel + 0.1);
+                setZoomLevel(newZoom);
+              }}
+              className="p-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all"
+              title="Aumentar zoom"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setZoomLevel(1);
+              }}
+              className="p-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all"
+              title="Resetar zoom"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        </div>
+        <form onSubmit={handleSaveSettings} className="max-w-3xl space-y-10" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}>
           <div className="grid grid-cols-1 gap-8">
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Nome do Restaurante</label>

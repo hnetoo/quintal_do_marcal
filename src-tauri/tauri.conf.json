@@ -60,9 +60,6 @@
     "notification": {
       "all": true
     },
-    "dialog": {
-      "all": true
-    },
     "shell": {
       "open": true
     },
