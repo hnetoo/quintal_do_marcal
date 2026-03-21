@@ -550,10 +550,14 @@ export const useStore = create<StoreState>()(
           };
         });
 
-        // PERSISTÊNCIA IMEDIATA NO SUPABASE - USAR VALORES REAIS
+        // PERSISTÊNCIA APENAS LOCAL - SEM SUPABASE
         const finalOrder = get().activeOrders.find(o => o.id === orderId);
         if (finalOrder && finalOrder.status === 'closed') {
-          // USAR OPERADOR REAL - NÃO FORÇAR PADRÃO
+          // Salvar apenas localmente via sqliteService
+          await sqliteService.saveState(get());
+          console.log('✅ Venda salva localmente com sucesso');
+          get().addNotification('success', 'Venda finalizada com sucesso (local)');
+        }
           const currentUser = get().currentUser;
           const sellerName = currentUser?.name || finalOrder.subAccountName || 'OPERADOR_PADRAO';
           
