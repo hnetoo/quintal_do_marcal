@@ -1,7 +1,9 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Table, Order, OrderItem, Dish, Customer, User, Employee, StockItem, Category, SystemSettings, TableStatus, OrderType, OrderStatus, PaymentMethod, CashFlowStatus } from '../types';
 import { sqliteService } from '../lib/sqliteService';
+import { versionControlService } from '../lib/versionControlService';
+import { sqlMigrationService } from '../lib/sqlMigrationService';
 import { MOCK_MENU, MOCK_TABLES, MOCK_CUSTOMERS, MOCK_USERS, MOCK_CATEGORIES, MOCK_STOCK, MOCK_RESERVATIONS } from '../../constants';
 import defaultLogo from '../assets/logo.png';
 
