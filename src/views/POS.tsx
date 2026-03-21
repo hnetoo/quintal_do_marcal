@@ -408,7 +408,7 @@ const POS = () => {
       try {
         // Verificar se ainda temos o ID do pedido
         if (!capturedOrderId) {
-          console.log('[POS] orderToPrintId não disponível, pulando impressão');
+          console.log('[POS] capturedOrderId não disponível, pulando impressão');
           return;
         }
         
@@ -1133,7 +1133,7 @@ const POS = () => {
             }
             
             // Chamar função de impressão existente
-            await handleCheckoutFinal(selectedPaymentMethod!, selectedCustomerId);
+            await handleCheckoutFinal(paymentMethod as PaymentMethod, selectedCustomerId);
           }
           
         } catch (error) {
