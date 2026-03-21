@@ -386,10 +386,6 @@ const POS = () => {
       addNotification('error', 'Erro ao salvar pedido');
     }
   };
-  } catch (dbError) {
-      console.error('[POS] Erro na gravação do pedido:', dbError);
-      addNotification('error', 'Erro ao salvar pedido. Tentando imprimir mesmo assim...');
-    }
     
     // Resetar estado de finalização após sucesso
     setTimeout(() => {
