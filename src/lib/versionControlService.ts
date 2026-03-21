@@ -14,12 +14,10 @@ class VersionControlService {
     const id = `rp-${Date.now()}`;
     const timestamp = new Date().toISOString();
     
-    // Otimizar: salvar apenas dados essenciais para evitar quota exceeded
+    // OTIMIZAÇÃO EXTREMA: salvar apenas configurações essenciais
     const optimizedState = {
       settings: state.settings,
-      menu: state.menu?.slice(0, 10), // Apenas 10 primeiros itens
-      categories: state.categories?.slice(0, 5), // Apenas 5 primeiras categorias
-      // Não salvar dados grandes como orders, expenses, etc.
+      // Não salvar menu, categorias, orders, etc para evitar quota exceeded
     };
     
     const point: RestorePoint = { id, timestamp, description, state: optimizedState };
