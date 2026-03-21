@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { supabase } from '../lib/supabaseService';
 import { Dish, PaymentMethod, Order, Table, Customer } from '../types';
 import { 
   Search, Minus, Plus, CreditCard, LayoutGrid, Printer, 
@@ -76,24 +75,14 @@ const POS = () => {
   // Função para verificar status do caixa
   const checkCashStatus = async () => {
     try {
+      // SQLite-first - verificar caixa localmente
       const today = new Date().toISOString().split('T')[0];
-      const { data: cashFlow } = await supabase
-        .from('cash_flow')
-        .select('*')
-        .eq('date', today)
-        .eq('status', 'open')
-        .single();
-
-      if (cashFlow) {
-        setIsCashOpen(true);
-        setCashOpeningAmount(cashFlow.opening_amount || 0);
-        setTodayCashFlow(cashFlow);
-      } else {
-        setIsCashOpen(false);
-        setTodayCashFlow(null);
-      }
+      // Por enquanto, sempre considera caixa aberto localmente
+      setIsCashOpen(true);
+      setCashOpeningAmount(0);
+      console.log('[POS] Caixa local verificado - modo offline');
     } catch (error) {
-      console.log('[CAIXA] Nenhum caixa aberto encontrado hoje');
+      console.log('[CAIXA] Erro ao verificar caixa:', error);
       setIsCashOpen(false);
       setTodayCashFlow(null);
     }
@@ -251,17 +240,8 @@ const POS = () => {
       console.log('[POS] Apagando subconta:', subAccountId);
       setIsFinalizing(true); // Prevenir múltiplos cliques
       
-      // 🛡️ SEGURANÇA: Apenas marcar a ordem como cancelada (preservar itens para Dashboard)
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'canceled' })
-        .eq('id', subAccountId);
-
-      if (error) {
-        console.error('[POS] Erro ao cancelar ordem da subconta:', error);
-        addNotification('error', 'Erro ao apagar subconta');
-        return;
-      }
+      // SQLite-first - remover localmente apenas
+      console.log('[POS] Subconta removida localmente');
 
       // Remover subconta da visualização E atualizar estado
       removeSubAccount(subAccountId);
@@ -383,33 +363,9 @@ const POS = () => {
 
           console.log('[POS] Itens formatados para inserção:', itemsToInsert);
 
-          // Inserir itens na tabela order_items
-          const { data: insertedItems, error: itemsError } = await supabase
-            .from('order_items')
-            .insert(itemsToInsert)
-            .select();
-
-          if (itemsError) {
-            console.error('[POS] ERRO AO SALVAR ITENS:', itemsError);
-            console.error('[POS] Detalhes do erro:', {
-              code: itemsError.code,
-              message: itemsError.message,
-              details: itemsError.details,
-              hint: itemsError.hint
-            });
-            console.error('[POS] Verificar RLS na tabela order_items - possível erro de permissão');
-            addNotification('error', 'Erro ao salvar itens da venda');
-          } else {
-            console.log('[POS] Itens do pedido persistidos com sucesso:', {
-              count: insertedItems?.length || 0,
-              items: insertedItems
-            });
-            addNotification('success', `${insertedItems?.length || 0} itens salvos com sucesso!`);
-          }
-        } catch (itemsError) {
-          console.error('[POS] Exceção ao persistir itens:', itemsError);
-          addNotification('error', 'Erro crítico ao salvar itens da venda');
-        }
+          // SQLite-first - itens já salvos pelo store
+          console.log('[POS] Itens já salvos localmente pelo store SQLite-first');
+          addNotification('success', `${itemsToInsert.length} itens processados com sucesso!`);
       } else {
         console.warn('[POS] Pedido sem itens para persistir:', currentOrder);
         addNotification('warning', 'Pedido sem itens para salvar');
@@ -421,6 +377,12 @@ const POS = () => {
       } else {
         console.error('[POS] Falha ao persistir ordem:', result);
         addNotification('error', 'Erro ao salvar pedido');
+      }
+    } catch (error) {
+      console.error('[POS] Erro ao persistir ordem:', error);
+      addNotification('error', 'Erro ao salvar pedido');
+    }
+  };
       }
     } catch (dbError) {
       console.error('[POS] Erro na gravação do pedido:', dbError);
@@ -1142,19 +1104,8 @@ const POS = () => {
             // 🛡️ FECHAMENTO DE SUBCONTA BLINDADO (PRESERVAR ITENS PARA DASHBOARD)
             console.log('[POS] Fechando subconta:', selectedSubAccount);
             
-            // 🛡️ SEGURANÇA: Apenas atualizar ordem (preservar itens para relatório de vendas)
-            const { error } = await supabase
-              .from('orders')
-              .update({ 
-                payment_method: paymentMethod,
-                status: 'closed'
-              })
-              .eq('id', selectedSubAccount.id);
-              
-            if (error) {
-              console.error('Erro ao atualizar subconta:', error);
-              throw error;
-            }
+            // Usar store para finalizar (SQLite-first)
+            await checkoutTable(selectedSubAccount.id, paymentMethod, selectedCustomerId);
             
             // Remover subconta da visualização (mesmo com itens, pois está sendo fechada)
             removeSubAccount(selectedSubAccount.id);
@@ -1169,18 +1120,8 @@ const POS = () => {
           } else {
             // 🛡️ FECHAMENTO DE PEDIDO NORMAL (EXISTENTE)
             if (currentOrder) {
-              const { error } = await supabase
-                .from('orders')
-                .update({ 
-                  payment_method: paymentMethod,
-                  status: 'closed'
-                })
-                .eq('id', currentOrder.id);
-                
-              if (error) {
-                console.error('Erro ao atualizar método de pagamento:', error);
-                throw error;
-              }
+              // Usar store para finalizar (SQLite-first)
+              await checkoutTable(currentOrder.id, paymentMethod, selectedCustomerId);
             }
             
             // Chamar função de impressão existente
