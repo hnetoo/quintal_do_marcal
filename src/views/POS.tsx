@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabaseService';
-import { Table, Order, OrderItem, Dish, Customer, User, Employee, StockItem, Category, SystemSettings, TableStatus, OrderType, OrderStatus, PaymentMethod, CashFlowStatus } from '../types';
+import { Dish, PaymentMethod, Order, Table, Customer } from '../types';
 import { 
   Search, Minus, Plus, CreditCard, LayoutGrid, Printer, 
   Banknote, X, Utensils, MoveHorizontal, Sparkles, Loader2,
@@ -118,11 +118,11 @@ const POS = () => {
   // LOG DE DEPURAÇÃO PARA IMAGENS
   if (menu.length > 0) {
     console.log("[DEBUG] Dados do Produto 1:", menu[0]);
-    console.log("[POS] URL da imagem do primeiro produto:", menu[0]?.image_url);
+    console.log("[POS] URL da imagem do primeiro produto:", menu[0]?.image);
     console.log("[POS] Estrutura da imagem:", {
-      hasImage: !!menu[0]?.image_url,
-      imageType: typeof menu[0]?.image_url,
-      imageLength: menu[0]?.image_url?.length,
+      hasImage: !!menu[0]?.image,
+      imageType: typeof menu[0]?.image,
+      imageLength: menu[0]?.image?.length,
       allKeys: Object.keys(menu[0] || {})
     });
   }
@@ -728,7 +728,7 @@ const POS = () => {
                       className={`group bg-white/[0.03] rounded-[2.5rem] border-2 overflow-hidden flex flex-col transition-all active:scale-95 relative hover:shadow-2xl ${lastAddedItemId === dish.id ? 'border-primary shadow-glow scale-105' : 'border-white/5 hover:border-primary/30 hover:bg-white/[0.06]'}`}
                     >
                        <div className="aspect-[4/4] w-full overflow-hidden relative">
-                          <LazyImage src={dish.image_url} alt={dish.name} containerClassName="w-full h-full" className="group-hover:scale-110 transition-all duration-1000 ease-out" />
+                          <LazyImage src={dish.image} alt={dish.name} containerClassName="w-full h-full" className="group-hover:scale-110 transition-all duration-1000 ease-out" />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
                           
                           {lastAddedItemId === dish.id && (
