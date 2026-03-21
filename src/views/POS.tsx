@@ -386,7 +386,6 @@ const POS = () => {
       console.error('[POS] Erro ao persistir ordem:', error);
       addNotification('error', 'Erro ao salvar pedido');
     }
-  };
     
     // Resetar estado de finalização após sucesso
     setTimeout(() => {
@@ -400,7 +399,7 @@ const POS = () => {
     setSelectedCustomerId(undefined);
     
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
-    // Função simples e isolada para impressão
+    // Usar as variáveis que já estão disponíveis no escopo
     setTimeout(() => {
       try {
         if (!currentOrder?.id) {
@@ -431,6 +430,7 @@ const POS = () => {
         addNotification('error', 'Erro na impressão');
       }
     }, 500);
+  };
 
   const formatKz = (val: number) => new Intl.NumberFormat('pt-AO', { 
     style: 'currency', currency: 'AOA', maximumFractionDigits: 0 
