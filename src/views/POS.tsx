@@ -310,7 +310,8 @@ const POS = () => {
       return;
     }
 
-    const orderId = currentOrder.id;
+    // Garantir que orderId sempre tenha um valor
+    const orderId = currentOrder?.id || 'unknown';
     const orderData = currentOrder; // Salvar dados do pedido antes de qualquer alteração
     const customerData = customers.find(c => c.id === orderData.customerId);
     
@@ -400,8 +401,8 @@ const POS = () => {
     
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
     // Capturar variáveis no escopo do setTimeout
-    const capturedOrderId = orderId;
-    const capturedOrderData = orderData;
+    const capturedOrderId = orderId || currentOrder?.id;
+    const capturedOrderData = orderData || currentOrder;
     const capturedCustomerData = customerData;
     
     setTimeout(() => {
