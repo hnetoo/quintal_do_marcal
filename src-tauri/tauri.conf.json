@@ -36,15 +36,7 @@
     "active": true,
     "targets": ["msi"],
     "icon": [
-      "icons/Square310x310Logo.png",
-      "icons/Square150x150Logo.png",
-      "icons/Square142x142Logo.png",
-      "icons/Square107x107Logo.png",
-      "icons/Square89x89Logo.png",
-      "icons/Square71x71Logo.png",
-      "icons/Square44x44Logo.png",
-      "icons/Square30x30Logo.png",
-      "icons/icon.icns",
+      "icons/Logo-cb0f4f07-a29e-4f13-a59c-6e924140c8c8.jpg",
       "icons/icon.ico"
     ],
     "publisher": "Vereda Systems Angola",

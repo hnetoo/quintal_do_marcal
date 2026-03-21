@@ -3,7 +3,6 @@
     windows_subsystem = "windows"
 )]
 
-use std::fs;
 use serde_json::Value;
 
 #[tauri::command]
@@ -24,7 +23,7 @@ async fn get_app_version() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn save_config(supabase_url: String, supabase_key: String) -> Result<String, String> {
+async fn save_config(supabase_url: String, _supabase_key: String) -> Result<String, String> {
     // Versão simplificada - apenas log
     println!("Configuração salva: URL={}, Key={}", supabase_url, "****");
     Ok("Configuração salva com sucesso".to_string())
