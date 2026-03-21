@@ -310,11 +310,11 @@ const POS = () => {
       return;
     }
 
-    const orderToPrintId = currentOrder.id;
+    const orderId = currentOrder.id;
     const orderData = currentOrder; // Salvar dados do pedido antes de qualquer alteração
     const customerData = customers.find(c => c.id === orderData.customerId);
     
-    console.log(`[POS] Finalizando pedido ${orderToPrintId} com método ${method}`);
+    console.log(`[POS] Finalizando pedido ${orderId} com método ${method}`);
     
     // TENTAR FINALIZAÇÃO NO BANCO (pode falhar com 401)
     try {
@@ -400,7 +400,7 @@ const POS = () => {
     
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
     // Capturar variáveis no escopo do setTimeout
-    const capturedOrderId = orderToPrintId;
+    const capturedOrderId = orderId;
     const capturedOrderData = orderData;
     const capturedCustomerData = customerData;
     
