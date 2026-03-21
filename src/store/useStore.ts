@@ -550,13 +550,29 @@ export const useStore = create<StoreState>()(
           };
         });
 
-        // PERSISTÊNCIA APENAS LOCAL - SEM SUPABASE
+        // PERSISTÊNCIA LOCAL PRIMÁRIA - SEMPRE FUNCIONA
         const finalOrder = get().activeOrders.find(o => o.id === orderId);
         if (finalOrder && finalOrder.status === 'closed') {
-          // Salvar apenas localmente via sqliteService
+          // Salvar localmente SEMPRE
           await sqliteService.saveState(get());
           console.log('✅ Venda salva localmente com sucesso');
-          get().addNotification('success', 'Venda finalizada com sucesso (local)');
+          get().addNotification('success', 'Venda finalizada com sucesso');
+          
+          // SYNC OPCIONAL - Apenas se configurado E se não der erro
+          if (get().settings.supabaseUrl && get().settings.supabaseKey && get().settings.autoBackup) {
+            try {
+              // Verificar se DB local está "cheia" (mais de 1000 ordens por exemplo)
+              const localOrders = get().activeOrders.filter(o => o.status === 'closed');
+              if (localOrders.length > 1000) {
+                console.log('[SYNC] DB local com muitas ordens, iniciando sync...');
+                await sqlMigrationService.autoMigrate(get().settings, get());
+                console.log('[SYNC] Sync opcional concluído');
+              }
+            } catch (syncError) {
+              console.log('[SYNC] Sync opcional falhou, mas app continua funcionando:', syncError);
+              // NÃO mostrar erro ao usuário - sync é opcional
+            }
+          }
         }
           const currentUser = get().currentUser;
           const sellerName = currentUser?.name || finalOrder.subAccountName || 'OPERADOR_PADRAO';
