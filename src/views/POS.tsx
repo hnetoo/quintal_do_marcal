@@ -366,6 +366,9 @@ const POS = () => {
           // SQLite-first - itens já salvos pelo store
           console.log('[POS] Itens já salvos localmente pelo store SQLite-first');
           addNotification('success', `${itemsToInsert.length} itens processados com sucesso!`);
+        } catch (error) {
+          console.error('[POS] Erro ao processar itens:', error);
+        }
       } else {
         console.warn('[POS] Pedido sem itens para persistir:', currentOrder);
         addNotification('warning', 'Pedido sem itens para salvar');
