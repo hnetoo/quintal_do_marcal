@@ -400,50 +400,35 @@ const POS = () => {
     setSelectedCustomerId(undefined);
     
     // IMPRESSÃO DIRETA E LIMPEZA COMPLETA DO CARRINHO
-    // Capturar variáveis no escopo do setTimeout
-    const capturedOrderId = currentOrderId || currentOrder?.id;
-    const capturedOrderData = orderData || currentOrder;
-    const capturedCustomerData = customerData;
-    
+    // Função simples e isolada para impressão
     setTimeout(() => {
       try {
-        // Verificar se ainda temos o ID do pedido
-        if (!capturedOrderId) {
-          console.log('[POS] capturedOrderId não disponível, pulando impressão');
+        if (!currentOrder?.id) {
+          console.log('[POS] Sem pedido para imprimir');
           return;
         }
         
-        console.log(`[POS] Disparando impressão direta do pedido ${capturedOrderId}`);
+        console.log(`[POS] Imprimindo pedido ${currentOrder.id}`);
         
-        // Buscar pedido atualizado do estado para ter invoiceNumber
+        // Buscar dados atuais
         const state = useStore.getState();
-        const updatedOrder = state.activeOrders.find(o => o.id === capturedOrderId);
+        const orderToPrint = state.activeOrders.find(o => o.id === currentOrder.id) || currentOrder;
+        const customerToPrint = state.customers.find(c => c.id === orderToPrint.customerId);
         
-        // Usar pedido atualizado se disponível, senão usar dados locais
-        const orderToPrint = updatedOrder || capturedOrderData;
-        const customerToPrint = updatedOrder 
-          ? state.customers.find(c => c.id === updatedOrder.customerId)
-          : capturedCustomerData;
+        // Impressão direta
+        if (typeof handleDirectPrint === 'function') {
+          handleDirectPrint(orderToPrint, customerToPrint);
+        }
         
-        console.log(`[POS] Pedido para impressão:`, {
-          id: orderToPrint.id,
-          invoiceNumber: orderToPrint.invoiceNumber,
-          total: orderToPrint.total,
-          items: orderToPrint.items?.length || 0
-        });
-        
-        // Impressão direta SEM configuração
-        handleDirectPrint(orderToPrint, customerToPrint);
-        
-        // Reset completo para estado inicial de "Seleção de Produtos"
+        // Reset completo
         setActiveOrder(null);
         setActiveTable(null);
-        setIsHistoryOpen(false); // Fechar histórico se estiver aberto
+        setIsHistoryOpen(false);
         
-        addNotification('success', 'Impressão disparada e sistema pronto para próxima venda!');
-      } catch (printError) {
-        console.error('[POS] Erro crítico na impressão:', printError);
-        addNotification('error', 'Falha na impressão. Tente novamente.');
+        addNotification('success', 'Venda concluída com sucesso!');
+      } catch (error) {
+        console.error('[POS] Erro na impressão:', error);
+        addNotification('error', 'Erro na impressão');
       }
     }, 500);
 
