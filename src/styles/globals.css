@@ -1,0 +1,230 @@
+/* Scrollbars Personalizadas - Responsivas */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar personalizada para todos os browsers */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(71 85 105) rgb(30 41 59);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgb(30 41 59);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);
+}
+
+/* Scrollbar para mobile */
+@media (max-width: 768px) {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Animações suaves */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Container principal com altura total */
+.h-full-available {
+  height: 100vh;
+  height: 100dvh; /* viewport height para mobile */
+}
+
+/* Grid responsivo otimizado */
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 2rem;
+  }
+}
+
+/* Cards responsivos */
+.card-responsive {
+  @apply bg-slate-900/50 backdrop-blur-sm rounded-xl border border-white/10 hover:border-primary/30 transition-all duration-300 overflow-hidden hover:shadow-lg hover:shadow-primary/10;
+}
+
+/* Modais responsivos */
+.modal-responsive {
+  @apply fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4;
+}
+
+.modal-content-responsive {
+  @apply bg-slate-900 rounded-2xl w-full max-h-[90vh] overflow-hidden border border-white/10 shadow-2xl;
+}
+
+/* Headers responsivos */
+.header-responsive {
+  @apply flex-shrink-0 bg-slate-900/50 backdrop-blur-sm border-b border-white/10 p-4 md:p-6;
+}
+
+/* Containers com scroll */
+.scroll-container {
+  @apply overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800;
+}
+
+/* Textos responsivos */
+.text-responsive-sm {
+  @apply text-xs md:text-sm;
+}
+
+.text-responsive-base {
+  @apply text-sm md:text-base;
+}
+
+.text-responsive-lg {
+  @apply text-base md:text-lg;
+}
+
+.text-responsive-xl {
+  @apply text-lg md:text-xl;
+}
+
+.text-responsive-2xl {
+  @apply text-xl md:text-2xl;
+}
+
+/* Botões responsivos */
+.btn-responsive {
+  @apply px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium transition-all;
+}
+
+.btn-primary-responsive {
+  @apply btn-responsive bg-primary text-black hover:brightness-110 rounded-lg;
+}
+
+/* Inputs responsivos */
+.input-responsive {
+  @apply w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 md:px-4 md:py-3 text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none transition-all text-sm md:text-base;
+}
+
+/* Espaçamentos responsivos */
+.space-responsive-4 {
+  @apply space-y-2 md:space-y-4;
+}
+
+.space-responsive-6 {
+  @apply space-y-3 md:space-y-6;
+}
+
+.space-responsive-8 {
+  @apply space-y-4 md:space-y-8;
+}
+
+/* Grid de produtos responsivo */
+.products-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6;
+}
+
+/* Grid de categorias responsivo */
+.categories-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
+}
+
+/* Sidebar responsiva */
+.sidebar-responsive {
+  @apply bg-slate-950 border-r border-white/5 flex flex-col items-center py-6 md:py-10 gap-4 md:gap-8 z-40 relative transition-all duration-300;
+}
+
+.sidebar-collapsed {
+  @apply w-0;
+}
+
+.sidebar-expanded {
+  @apply w-16 md:w-24;
+}
+
+/* Header responsivo */
+.header-main {
+  @apply h-16 md:h-24 bg-slate-900/40 backdrop-blur-md border-b border-white/5 flex items-center px-4 md:px-10 justify-between shrink-0;
+}
+
+/* Container principal */
+.main-container {
+  @apply flex-1 flex flex-col overflow-hidden relative;
+}
+
+/* Container de conteúdo */
+.content-container {
+  @apply flex-1 overflow-hidden;
+}
+
+.content-scroll {
+  @apply h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800 p-4 md:p-6;
+}
+
+/* Toggle button */
+.toggle-btn {
+  @apply fixed top-4 left-4 z-[9999] w-10 h-10 md:w-12 md:h-12 bg-primary rounded-lg flex items-center justify-center text-black shadow-lg hover:shadow-glow transition-all hover:scale-105 active:scale-95;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .mobile-hidden {
+    display: none;
+  }
+  
+  .mobile-full {
+    width: 100%;
+  }
+  
+  .mobile-text-center {
+    text-align: center;
+  }
+}
+
+/* Touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

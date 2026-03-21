@@ -26,7 +26,7 @@ interface SystemHubUser {
 
 const SystemHub = () => {
   const [activeCard, setActiveCard] = useState<string | null>(null);
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, addNotification } = useStore();
 
   // Componente Identidade usando formulário existente
   const IdentitySettings = () => {
@@ -38,10 +38,15 @@ const SystemHub = () => {
       e.preventDefault();
       setIsSaving(true);
       try {
+        console.log('[SYSTEM HUB] Salvando configurações:', localSettings);
         await updateSettings(localSettings);
+        console.log('[SYSTEM HUB] Configurações salvas com sucesso!');
+        addNotification('success', 'Configurações salvas com sucesso!');
         // Mostrar notificação de sucesso
         setTimeout(() => setIsSaving(false), 1000);
       } catch (error) {
+        console.error('[SYSTEM HUB] Erro ao salvar configurações:', error);
+        addNotification('error', 'Erro ao salvar configurações!');
         setIsSaving(false);
       }
     };
@@ -49,21 +54,36 @@ const SystemHub = () => {
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
+        console.log('[SYSTEM HUB] Upload de logo:', {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        });
+        
         // Validar se é uma imagem
         if (!file.type.startsWith('image/')) {
           alert('Por favor, selecione um arquivo de imagem (JPG, PNG, etc.)');
           return;
         }
 
-        // Validar tamanho máximo (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('A imagem não pode ser maior que 5MB');
+        // Validar tamanho máximo (2MB - reduzido para evitar problemas)
+        if (file.size > 2 * 1024 * 1024) {
+          alert('A imagem não pode ser maior que 2MB');
           return;
         }
 
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
+          console.log('[SYSTEM HUB] Logo convertido para base64, tamanho:', result.length);
+          
+          // OTIMIZAR: se for muito grande, mostrar aviso e comprimir
+          if (result.length > 1000000) { // 1MB em base64
+            console.warn('[SYSTEM HUB] Logo muito grande, pode causar problemas de armazenamento');
+            alert('Logo muito grande! Use uma imagem menor (máx 2MB) para evitar problemas.');
+            return;
+          }
+          
           setLocalSettings({...localSettings, appLogoUrl: result});
         };
         reader.readAsDataURL(file);

@@ -13,9 +13,16 @@ class VersionControlService {
   async createRestorePoint(description: string, state: any): Promise<RestorePoint> {
     const id = `rp-${Date.now()}`;
     const timestamp = new Date().toISOString();
-    // Deep copy to avoid reference issues
-    const stateCopy = JSON.parse(JSON.stringify(state));
-    const point: RestorePoint = { id, timestamp, description, state: stateCopy };
+    
+    // Otimizar: salvar apenas dados essenciais para evitar quota exceeded
+    const optimizedState = {
+      settings: state.settings,
+      menu: state.menu?.slice(0, 10), // Apenas 10 primeiros itens
+      categories: state.categories?.slice(0, 5), // Apenas 5 primeiras categorias
+      // Não salvar dados grandes como orders, expenses, etc.
+    };
+    
+    const point: RestorePoint = { id, timestamp, description, state: optimizedState };
     
     const points = this.getRestorePoints();
     // Keep only the last 20 restore points to avoid storage limits

@@ -69,6 +69,7 @@ interface StoreState {
   // Configurações e UI
   settings: SystemSettings;
   updateSettings: (settings: Partial<SystemSettings>) => void;
+  clearSupabaseConfig: () => void;
   auditLogs: AuditLog[];
   paymentConfigs: PaymentMethodConfig[];
   notifications: Notification[];
@@ -242,33 +243,48 @@ export const useStore = create<StoreState>()(
         kdsEnabled: true,
         isSidebarCollapsed: false,
         apiToken: "V-OS-QUBIT-777",
-        supabaseUrl: "https://ratzyxwpzrqbtpheygch.supabase.co",
-        supabaseKey: "sb_publishable_brYx8iH2oCK5uVUowtUhTQ_c7X4nrAo",
-        autoBackup: true,
+        supabaseUrl: "https://tjqljzpbxucuiknxqnju.supabase.co",
+        supabaseKey: "sb_publishable_4_-dAijU63HvYN1p9Ri7aA_f-Cl2cBh",
+        autoBackup: true, // HABILITADO com chaves corretas
         customDigitalMenuUrl: "https://tasca-do-vereda.vercel.app/menu-digital" 
       },
       updateSettings: (s) => {
         const oldState = get();
         versionControlService.createRestorePoint('Auto-backup antes de alteração de definições', oldState);
         
+        // SEMPRE SALVAR LOCALMENTE PRIMEIRO
+        console.log('💾 Salvando configurações localmente...');
+        const merged = { ...get().settings, ...s };
+        const baseUrl = "https://tasca-do-vereda.vercel.app/menu-digital";
+        const shareUrl = (merged.supabaseUrl && merged.supabaseKey)
+          ? `${baseUrl}?supabaseUrl=${encodeURIComponent(merged.supabaseUrl)}&anonKey=${encodeURIComponent(merged.supabaseKey)}`
+          : baseUrl;
+        
+        set(state => ({
+          settings: { ...merged, customDigitalMenuUrl: shareUrl }
+        }));
+        
         // Se auto-backup estiver ativo, criar um backup real no DB Hub
         if (s.autoBackup && !get().settings.autoBackup) {
           databaseService.createBackup('Ativação de Auto-Backup', oldState);
         }
 
-        set(state => {
-          const merged = { ...state.settings, ...s };
-          const baseUrl = "https://tasca-do-vereda.vercel.app/menu-digital";
-          const shareUrl = (merged.supabaseUrl && merged.supabaseKey)
-            ? `${baseUrl}?supabaseUrl=${encodeURIComponent(merged.supabaseUrl)}&anonKey=${encodeURIComponent(merged.supabaseKey)}`
-            : baseUrl;
-          return { settings: { ...merged, customDigitalMenuUrl: shareUrl } };
-        });
-        
-        // Auto-sync to Supabase if enabled
-        if (get().settings.autoBackup && get().settings.supabaseUrl) {
-          sqlMigrationService.autoMigrate(get().settings, get());
-        }
+        // NÃO TENTAR MAIS SINCRONIZAR COM SUPABASE - DESABILITADO
+        // if (get().settings.autoBackup && get().settings.supabaseUrl) {
+        //   console.log('🌐 Tentando sincronizar com Supabase...');
+        //   sqlMigrationService.autoMigrate(get().settings, get()).then(result => {
+        //     if (!result.success) {
+        //       console.error('❌ Falha na sincronização:', result.details);
+        //       // SE DER ERRO DE API KEY, LIMPAR CONFIGURAÇÕES AUTOMATICAMENTE
+        //       if (result.details?.error?.message?.includes('Invalid API key')) {
+        //         console.log('🗑️ Erro de API key detectado - limpando configurações...');
+        //         get().clearSupabaseConfig();
+        //       }
+        //     } else {
+        //       console.log('✅ Configurações sincronizadas com sucesso!');
+        //     }
+        //   });
+        // }
       },
       tables: MOCK_TABLES,
       categories: MOCK_CATEGORIES.map(c => ({...c, isVisibleDigital: true})),
@@ -288,6 +304,14 @@ export const useStore = create<StoreState>()(
       reservations: MOCK_RESERVATIONS,
       workShifts: [],
 
+      clearSupabaseConfig: () => set(state => {
+        console.log('🗑️ Limpando configurações do Supabase...');
+        const newSettings = { ...state.settings };
+        delete newSettings.supabaseUrl;
+        delete newSettings.supabaseKey;
+        return { settings: newSettings };
+      }),
+      
       setActiveTable: (id) => set({ activeTableId: id }),
       setActiveOrder: (id) => set({ activeOrderId: id }),
 

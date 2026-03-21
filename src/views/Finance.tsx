@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { supabase } from '../lib/supabaseService';
 import { 
   TrendingUp, DollarSign, Banknote, LayoutDashboard, History, PiggyBank,
   Printer, ShieldCheck, FileText, Lock, Database, Search, Download, 
@@ -11,12 +10,11 @@ import { printThermalInvoice, printFinanceReport } from '../lib/printService';
 import { generateSAFT, downloadSAFT } from '../lib/saftService';
 import { PaymentMethodConfig, Order, Expense, ExpenseCategory, ExpenseStatus } from '../../types';
 
-const formatKz = (val: number) => 
-  new Intl.NumberFormat('pt-AO', { 
-    style: 'currency', 
-    currency: 'AOA', 
-    maximumFractionDigits: 0 
-  }).format(val);
+const formatKz = (val: number | undefined | null) => {
+  const safeVal = val?.toString()?.replace(/[^\d.-]/g, '') || "0";
+  const numVal = parseFloat(safeVal) || 0;
+  return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(numVal);
+};
 
 const Finance = () => {
   const { activeOrders, settings, menu, customers, addNotification, paymentConfigs, addPaymentConfig, updatePaymentConfig, expenses, addExpense, updateExpense, removeExpense, approveExpense } = useStore();
@@ -30,135 +28,91 @@ const Finance = () => {
     isActive: true
   });
   
-  // Estados para despesas
+  // Estados para despesas - MODO OFFLINE
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // ESTADO DE CARREGAMENTO
-  const [loading, setLoading] = useState(false); // ESTADO DE BLOQUEIO TOTAL
-  const [totalExpensesFromDB, setTotalExpensesFromDB] = useState(0); // TOTAL DA DB
-  const [expensesFromDB, setExpensesFromDB] = useState<any[]>([]); // DADOS DA DB PARA TABELA
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newExpense, setNewExpense] = useState<Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>>({
     description: '',
     amount: 0,
     category: 'OUTROS' as ExpenseCategory,
     status: 'PENDENTE',
     date: new Date().toISOString().split('T')[0]
-    // REMOVIDO: paymentMethod (NÃO EXISTE NA TABELA)
   });
 
-  // BUSCAR TOTAL DE DESPESAS DA DB (SEM USAR VARIÁVEIS GLOBAIS)
-  const fetchTotalExpensesFromDB = async () => {
-    try {
-      // FORÇAR CACHE-BUSTING PARA GARANTIR DADOS ATUAIS
-      const cacheBuster = Date.now();
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('amount_kz, status, description, category, created_at')
-        .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  // Cálculos financeiros - MODO OFFLINE
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const pendingExpenses = expenses.filter(e => e.status === 'PENDENTE').reduce((sum, expense) => sum + expense.amount, 0);
+  const approvedExpenses = expenses.filter(e => e.status === 'APROVADO').reduce((sum, expense) => sum + expense.amount, 0);
 
-      if (error) {
-        console.error('[FINANCE] Erro ao buscar total de despesas:', error);
-        return;
-      }
-
-      console.log('[FINANCE] Dados brutos da DB:', data); // DEBUG
-
-      // SOMAR TODOS OS REGISTOS (INCLUINDO PENDING) - SEM FILTRO
-      const allExpenses = data || [];
-      console.log('[FINANCE] Todas as despesas:', allExpenses); // DEBUG
-      
-      // ARMAZENAR DADOS DA DB PARA TABELA
-      setExpensesFromDB(allExpenses);
-      
-      // CONVERSÃO FORÇADA PARA NÚMERO COM LOG DETALHADO
-      const total = allExpenses.reduce((sum: number, exp: any) => {
-        const valor = Number(exp.amount_kz) || 0;
-        console.log(`[FINANCE] Despesa: ${exp.description} - amount_kz: ${exp.amount_kz} -> convertido: ${valor}`);
-        return sum + valor;
-      }, 0);
-      
-      setTotalExpensesFromDB(total);
-      console.log('[FINANCE] Total de despesas da DB:', {
-        total,
-        registos: data?.length || 0,
-        todas: allExpenses.length,
-        cacheBuster,
-        valores: allExpenses.map(exp => ({ desc: exp.description, amount_kz: exp.amount_kz, converted: Number(exp.amount_kz) || 0 }))
-      });
-    } catch (error) {
-      console.error('[FINANCE] Erro crítico ao buscar total:', error);
-      setTotalExpensesFromDB(0); // Fallback seguro
-    }
+  // Função para imprimir relatório de vendas
+  const handlePrintSale = (paymentMethod: string, total: number) => {
+    const title = `Relatório de Vendas - ${paymentMethod}`;
+    const data = [[paymentMethod, new Date().toLocaleDateString('pt-AO'), formatKz(total), formatKz(total * 0.065)]];
+    const columns = ['Método', 'Data', 'Bruto', 'IVA'];
+    printFinanceReport(title, data, columns, settings);
   };
-
-  // Buscar total na montagem e após cada operação
-  useEffect(() => {
-    fetchTotalExpensesFromDB();
-  }, [expenses.length]); // Atualizar quando mudar lista de despesas
-
-  // SUBSCRIÇÃO EM TEMPO REAL DO SUPABASE - ATUALIZAÇÃO AUTOMÁTICA
-  useEffect(() => {
-    // SUBSCRIÇÃO DE AUTENTICAÇÃO - DETECTAR MUDANÇAS DE SESSÃO
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[FINANCE] Auth state changed:', event, session);
-      
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Recarregar dados quando usuário fizer login ou refresh
-        console.log('[FINANCE] Usuário autenticado, recarregando dados...');
-        fetchTotalExpensesFromDB();
-      }
-    });
-
-    // SUBSCRIÇÃO DE MUDANÇAS NA TABELA ORDERS
-    const channel = supabase
-      .channel('finance-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('[FINANCE] Mudança em tempo real detectada:', payload);
-          
-          // ATUALIZAR DADOS AUTOMATICAMENTE
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            // Forçar re-renderização com dados atualizados
-            console.log('[FINANCE] Nova venda detectada, atualizando interface...');
-            fetchTotalExpensesFromDB();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-      subscription?.unsubscribe();
-    };
-  }, []);
-
   const closedOrders = useMemo(() => activeOrders.filter(o => ['FECHADO', 'closed', 'paid'].includes(o.status)), [activeOrders]);
   const today = new Date().toISOString().split('T')[0];
 
-  const metrics = useMemo(() => {
+  // Calcular métricas em tempo real (sem useMemo para debug)
+  const calculateMetrics = () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // DEBUG: Mostrar data e dados brutos
+    console.log('[FINANCE] DEBUG - Data de hoje:', today);
+    console.log('[FINANCE] DEBUG - ActiveOrders totais:', activeOrders.length);
+    console.log('[FINANCE] DEBUG - ClosedOrders:', closedOrders.length);
+    console.log('[FINANCE] DEBUG - Expenses totais:', expenses.length);
+    
+    // DEBUG: Mostrar pedidos com suas datas
+    const todayOrdersDebug = closedOrders.filter(o => {
+      const orderDate = String(o.timestamp || '').split('T')[0];
+      console.log('[FINANCE] DEBUG - Pedido:', {
+        id: o.id,
+        status: o.status,
+        timestamp: o.timestamp,
+        date: orderDate,
+        total: o.total
+      });
+      return orderDate === today;
+    });
+    
     const gross = closedOrders.reduce((acc, o) => acc + (o.total || 0), 0);
     const tax = closedOrders.reduce((acc, o) => acc + (o.taxTotal || 0), 0);
     const profit = closedOrders.reduce((acc, o) => acc + (o.profit || 0), 0);
     
     // VENDAS DE HOJE - mesmo filtro do Dashboard
-    const todayOrders = closedOrders.filter(o => String(o.timestamp || '').split('T')[0] === today);
+    const todayOrders = todayOrdersDebug;
     const todayGross = todayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
     const todayProfit = todayOrders.reduce((acc, o) => acc + (o.profit || 0), 0);
     
-    // DESPESAS DE HOJE - usar amount (coluna real)
-    const todayExpenses = expenses.filter(expense => 
-      String(expense.createdAt || '').split('T')[0] === today
-    );
+    // DEBUG: Mostrar despesas com suas datas
+    const todayExpensesDebug = expenses.filter(expense => {
+      const expenseDate = String(expense.date || expense.createdAt || '').split('T')[0];
+      console.log('[FINANCE] DEBUG - Despesa:', {
+        id: expense.id,
+        date: expense.date,
+        createdAt: expense.createdAt,
+        computedDate: expenseDate,
+        amount: expense.amount
+      });
+      return expenseDate === today;
+    });
+    
+    const todayExpenses = todayExpensesDebug;
     const todayExpensesTotal = todayExpenses.reduce((acc, exp) => acc + Number(exp.amount || 0), 0);
     
     // LUCRO LÍQUIDO REAL DE HOJE
     const todayNetProfit = todayGross - todayExpensesTotal;
+    
+    console.log('[FINANCE] DEBUG - Cálculos finais:', {
+      todayOrders: todayOrders.length,
+      todayGross,
+      todayExpenses: todayExpenses.length,
+      todayExpensesTotal,
+      todayNetProfit
+    });
     
     // Agrupar pagamentos por método - APENAS DE HOJE com mapeamento correto
     const payments = todayOrders.reduce((acc: any, o) => {
@@ -199,6 +153,8 @@ const Finance = () => {
           break;
         case 'express':
         case 'expresso':
+        case 'qr_code':
+        case 'qr-code':
           methodId = 'Express';
           break;
         default:
@@ -209,9 +165,24 @@ const Finance = () => {
       acc[methodId] = (acc[methodId] || 0) + (o.total || 0);
       return acc;
     }, {});
+    
+    // DEBUG: Mostrar valores calculados
+    console.log('[FINANCE] Cálculos de Hoje:', {
+      today,
+      totalOrders: closedOrders.length,
+      todayOrders: todayOrders.length,
+      todayGross,
+      todayExpenses: todayExpenses.length,
+      todayExpensesTotal,
+      todayNetProfit,
+      paymentConfigs: paymentConfigs.filter(c => c.isActive).length,
+      payments: Object.keys(payments)
+    });
 
     return { gross, tax, profit, todayGross, todayProfit, todayNetProfit, todayExpensesTotal, payments };
-  }, [closedOrders, today, expenses]);
+  };
+
+  const metrics = calculateMetrics();
 
   const handleExportSAFT = async () => {
     setSaftLoading(true);
@@ -225,61 +196,7 @@ const Finance = () => {
     }
   };
 
-  const handlePrintSale = (paymentMethod: string, total: number) => {
-    // Criar dados da venda para impressão
-    const saleData = {
-      paymentMethod,
-      total,
-      date: new Date().toLocaleDateString('pt-AO'),
-      tax: total * 0.065,
-      net: total - (total * 0.065)
-    };
-
-    // Gerar conteúdo para impressão
-    const printContent = `
-      <html>
-        <head>
-          <title>Recibo de Venda - ${saleData.paymentMethod}</title>
-          <style>
-            body { font-family: monospace; padding: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .details { margin: 10px 0; }
-            .total { font-weight: bold; font-size: 18px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>RECIBO DE VENDA</h2>
-            <p>Data: ${saleData.date}</p>
-          </div>
-          <div class="details">
-            <p><strong>Método de Pagamento:</strong> ${saleData.paymentMethod}</p>
-            <p><strong>Valor Bruto:</strong> ${formatKz(saleData.total)}</p>
-            <p><strong>IVA (6.5%):</strong> ${formatKz(saleData.tax)}</p>
-            <hr>
-            <p class="total"><strong>Valor Líquido:</strong> ${formatKz(saleData.net)}</p>
-          </div>
-          <div style="margin-top: 40px; text-align: center;">
-            <p>--- Assinatura ---</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    // Abrir janela de impressão
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.print();
-      printWindow.close();
-      
-      addNotification('success', 'Recibo enviado para impressão');
-    } else {
-      addNotification('error', 'Não foi possível abrir a janela de impressão');
-    }
-  };
-    const handleExportFinanceReport = () => {
+  const handleExportFinanceReport = () => {
     if (closedOrders.length === 0) {
       addNotification('warning', 'Nenhuma venda para exportar.');
       return;
@@ -299,100 +216,63 @@ const Finance = () => {
     addNotification('success', 'Relatório exportado com sucesso.');
   };
 
-  // Funções para despesas
+  // Funções para despesas - MODO OFFLINE
   const handleAddExpense = async () => {
     if (!newExpense.description || newExpense.amount <= 0) {
       addNotification('error', 'Preencha todos os campos obrigatórios.');
       return;
     }
     
-    // BLOQUEIO TOTAL - IMPEDIR CLIQUES DUPLOS (DEBOUNCE)
-    if (isSubmitting || loading) {
+    if (isSubmitting) {
       console.log('[FINANCE] Bloqueado: Já existe uma operação em andamento');
       return;
     }
     
     setIsSubmitting(true);
-    setLoading(true);
     
     try {
-      // PERSISTÊNCIA NO SUPABASE PRIMEIRO (SEM UPDATE OTIMISTA)
-      const expenseData = {
+      // Criar despesa local
+      const expense: Omit<Expense, 'id'> = {
         description: newExpense.description,
-        amount_kz: newExpense.amount,
+        amount: newExpense.amount,
         category: newExpense.category,
-        status: 'PENDING', // STATUS CORRETO
-        created_at: new Date().toISOString() // COLUNA CORRETA
-        // REMOVIDO: paymentMethod (NÃO EXISTE NA TABELA)
+        status: 'PENDENTE',
+        date: newExpense.date,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      // VALIDAÇÃO DE RESPOSTA - INSERT REAL NA DB
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert([expenseData])
-        .select();
-
-      if (error) {
-        console.error('[FINANCE] Erro ao inserir despesa:', error);
-        addNotification('error', `Falha ao salvar despesa: ${error.message}`);
-        // LIMPEZA DE FORMULÁRIO SE FALHOU
-        setNewExpense({
-          description: '',
-          amount: 0,
-          category: 'OUTROS' as ExpenseCategory,
-          status: 'PENDENTE',
-          date: new Date().toISOString().split('T')[0]
-          // REMOVIDO: paymentMethod (NÃO EXISTE NA TABELA)
-        });
-        setIsAddingExpense(false);
-        return;
-      }
-
-      console.log('[FINANCE] Despesa inserida com sucesso:', data);
+      // Adicionar ao store local
+      addExpense(expense);
       
-      // ADICIONAR AO ESTADO APENAS APÓS CONFIRMAÇÃO DA DB
-      if (data && data.length > 0) {
-        addExpense(data[0]);
-        addNotification('success', 'Despesa adicionada com sucesso.');
-        
-        // BUSCAR TOTAL ATUALIZADO DA DB
-        await fetchTotalExpensesFromDB();
-        
-        // LIMPEZA DE FORMULÁRIO APÓS SUCESSO
-        setNewExpense({
-          description: '',
-          amount: 0,
-          category: 'OUTROS' as ExpenseCategory,
-          status: 'PENDENTE',
-          date: new Date().toISOString().split('T')[0]
-          // REMOVIDO: paymentMethod (NÃO EXISTE NA TABELA)
-        });
-        setIsAddingExpense(false);
-      }
+      console.log('[FINANCE] Despesa adicionada com sucesso (offline):', expense);
+      addNotification('success', 'Despesa adicionada com sucesso!');
       
+      // Limpar formulário
+      setNewExpense({
+        description: '',
+        amount: 0,
+        category: 'OUTROS' as ExpenseCategory,
+        status: 'PENDENTE',
+        date: new Date().toISOString().split('T')[0]
+      });
+      setIsAddingExpense(false);
     } catch (error) {
-      console.error('Erro ao adicionar despesa:', error);
-      addNotification('error', 'Erro ao adicionar despesa. Tente novamente.');
-      
-      // REATIVAR BOTÃO APENAS EM CASO DE ERRO
-      setIsSubmitting(false);
-      setLoading(false);
+      console.error('[FINANCE] Erro ao adicionar despesa:', error);
+      addNotification('error', 'Falha ao adicionar despesa');
     } finally {
-      // SEMPRE REATIVAR BOTÃO NO FINAL
       setIsSubmitting(false);
-      setLoading(false);
     }
   };
-
-  const handleEditExpense = (expense: Expense) => {
+      
+      const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
     setNewExpense({
       description: expense.description,
-      amount: expense.amount, // Usar amount do tipo Expense
+      amount: expense.amount,
       category: expense.category,
       status: expense.status,
       date: expense.date || new Date().toISOString().split('T')[0]
-      // REMOVIDO: paymentMethod, receipt, notes (NÃO EXISTEM NA TABELA)
     });
   };
 
@@ -429,12 +309,6 @@ const Finance = () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     approveExpense(expense.id, currentUser.name || 'Sistema');
     addNotification('success', 'Despesa aprovada com sucesso.');
-  };
-
-  const formatKz = (val: number | undefined | null) => {
-    const safeVal = val?.toString()?.replace(/[^\d.-]/g, '') || "0";
-    const numVal = parseFloat(safeVal) || 0;
-    return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(numVal);
   };
 
   const getCategoryColor = (category: ExpenseCategory) => {
@@ -529,22 +403,19 @@ const Finance = () => {
                 <div className="glass-panel p-10 rounded-[3rem] border border-white/5 flex flex-col justify-center">
                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2"><PieChart size={16}/> Fluxo por Modalidade</h4>
                    <div className="space-y-4">
-                      {paymentConfigs.filter(c => c.isActive).map((config) => (
-                        <div key={config.id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
-                           <div className="flex items-center gap-3">
-                              <span className="text-primary"><Banknote size={16}/></span>
-                              <span className="text-[10px] font-black text-slate-400 uppercase">{config.name}</span>
-                           </div>
-                           <span className="text-sm font-mono font-bold text-white">{formatKz(metrics.payments[config.id] || 0)}</span>
-                        </div>
-                      ))}
-                      {/* Mostrar outros se houverem */}
-                      {Object.entries(metrics.payments).filter(([id]) => !paymentConfigs.some(c => c.id === id)).map(([id, val]: any) => (
-                        <div key={id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
-                           <span className="text-[10px] font-black text-slate-400 uppercase">{id.replace('_', ' ')}</span>
-                           <span className="text-sm font-mono font-bold text-white">{formatKz(val)}</span>
-                        </div>
-                      ))}
+                      {paymentConfigs.filter(c => c.isActive).map((config) => {
+                        // Buscar valor pelo nome do método de pagamento
+                        const paymentValue = metrics.payments[config.name] || 0;
+                        return (
+                          <div key={config.id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                             <div className="flex items-center gap-3">
+                                <span className="text-primary"><Banknote size={16}/></span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase">{config.name}</span>
+                             </div>
+                             <span className="text-sm font-mono font-bold text-white">{formatKz(paymentValue)}</span>
+                          </div>
+                        );
+                      })}
                    </div>
                 </div>
              </div>
@@ -564,24 +435,27 @@ const Finance = () => {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                   {metrics.payments && Object.entries(metrics.payments).length > 0 ? (
-                      Object.entries(metrics.payments).map(([paymentMethod, total]: any, index) => (
-                        <tr key={index} className="hover:bg-white/5 transition-colors">
-                           <td className="px-8 py-6 font-bold text-white text-xs">{paymentMethod}</td>
-                           <td className="px-8 py-6 text-xs text-slate-500 font-mono">{new Date().toLocaleDateString('pt-AO')}</td>
-                           <td className="px-8 py-6 font-mono font-bold text-white">{formatKz(total)}</td>
-                           <td className="px-8 py-6 font-mono text-orange-500">{formatKz(total * 0.065)}</td>
-                           <td className="px-8 py-6 text-right">
-                              <button 
-                                onClick={() => handlePrintSale(paymentMethod, total)}
-                                className="p-3 bg-white/5 text-slate-400 hover:text-primary rounded-xl transition-all"
-                                title="Imprimir recibo"
-                              >
-                                 <Printer size={18}/>
-                              </button>
-                           </td>
-                        </tr>
-                      ))
+                   {paymentConfigs.filter(c => c.isActive).length > 0 ? (
+                      paymentConfigs.filter(c => c.isActive).map((config) => {
+                        const total = metrics.payments[config.name] || 0;
+                        return (
+                          <tr key={config.id} className="hover:bg-white/5 transition-colors">
+                             <td className="px-8 py-6 font-bold text-white text-xs">{config.name}</td>
+                             <td className="px-8 py-6 text-xs text-slate-500 font-mono">{new Date().toLocaleDateString('pt-AO')}</td>
+                             <td className="px-8 py-6 font-mono font-bold text-white">{formatKz(total)}</td>
+                             <td className="px-8 py-6 font-mono text-orange-500">{formatKz(total * 0.065)}</td>
+                             <td className="px-8 py-6 text-right">
+                                <button 
+                                  onClick={() => handlePrintSale(config.name, total)}
+                                  className="p-3 bg-white/5 text-slate-400 hover:text-primary rounded-xl transition-all"
+                                  title="Imprimir recibo"
+                                >
+                                   <Printer size={18}/>
+                                </button>
+                             </td>
+                          </tr>
+                        );
+                      })
                    ) : (
                       <tr>
                         <td colSpan={5} className="px-8 py-12 text-center text-slate-500">
@@ -715,10 +589,10 @@ const Finance = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-white">
-                      {formatKz(totalExpensesFromDB)}
+                      {formatKz(totalExpenses)}
                     </div>
                     <p className="text-xs text-red-300 uppercase tracking-wider">
-                      {expensesFromDB?.length || 0} despesas
+                      {expenses.length} despesas
                     </p>
                   </div>
                 </div>
@@ -736,12 +610,11 @@ const Finance = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {(expensesFromDB || []).slice(-20).map(expense => (
-                    <tr key={expense.id || expense.description} className="hover:bg-white/5 transition-colors">
+                  {expenses.slice(-20).map(expense => (
+                    <tr key={expense.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <div>
                           <div className="font-bold text-white text-sm">{expense.description}</div>
-                          {/* REMOVIDO: expense.notes (NÃO EXISTE NA TABELA) */}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -749,14 +622,14 @@ const Finance = () => {
                           {expense.category?.replace('_', ' ') || 'OUTROS'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-mono font-bold text-white">{formatKz(expense.amount_kz || 0)}</td>
+                      <td className="px-6 py-4 font-mono font-bold text-white">{formatKz(expense.amount)}</td>
                       <td className="px-6 py-4">
                         <span className={`text-[8px] font-black uppercase ${getStatusColor(expense.status)}`}>
                           {expense.status?.replace('_', ' ') || 'PENDENTE'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500 font-mono">
-                        {new Date(expense.created_at || new Date()).toLocaleDateString('pt-AO')}
+                        {new Date(expense.date || expense.createdAt || new Date()).toLocaleDateString('pt-AO')}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex gap-2 justify-end">
@@ -896,14 +769,14 @@ const Finance = () => {
                 </button>
                 <button 
                   onClick={editingExpense ? handleUpdateExpense : handleAddExpense}
-                  disabled={isSubmitting || loading} // BLOQUEIO TOTAL - CLIQUES DUPLOS
+                  disabled={isSubmitting}
                   className={`flex-1 py-4 font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all ${
-                    isSubmitting || loading
+                    isSubmitting
                       ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
-                      : 'bg-primary text-black shadow-glow hover:bg-primary/90'
+                      : 'bg-primary text-black hover:brightness-110'
                   }`}
                 >
-                  {(isSubmitting || loading) ? (
+                  {(isSubmitting) ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       A guardar...

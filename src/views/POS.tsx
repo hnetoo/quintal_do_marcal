@@ -22,6 +22,7 @@ const POS = () => {
   const { 
     tables, categories, menu, activeOrders, customers, activeTableId, activeOrderId,
     setActiveTable, setActiveOrder, createNewOrder, addToOrder, removeFromOrder, checkoutTable, 
+    updateOrderPaymentMethod,
     updateTablePosition, addTable, updateTable, removeTable, closeTable,
     currentUser, logout, settings, updateSettings, notifications, addNotification,
     paymentConfigs, customerDisplayMode, setCustomerDisplayMode
@@ -205,7 +206,7 @@ const POS = () => {
       console.log('[FECHO] Total geral:', formattedOrders.reduce((sum, o) => sum + o.total, 0));
 
       // Chamar função de impressão existente com os dados
-      printCashClosing(formattedOrders, settings, currentUser?.name || 'Operador');
+      printCashClosing(formattedOrders, settings, currentUser?.name || 'Operador', paymentConfigs);
       addNotification('success', `Relatório de Fecho gerado com ${todayOrders.length} vendas.`);
       
     } catch (err) {
@@ -986,20 +987,15 @@ const POS = () => {
                  <Shield size={16}/> Atualização no Histórico de Fecho
               </div>
               <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-10">Mudar Forma de Pagamento</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                 {[
-                   { id: 'NUMERARIO', label: 'Dinheiro', icon: Banknote },
-                   { id: 'TPA', label: 'Multicaixa', icon: CreditCard },
-                   { id: 'QR_CODE', label: 'Express', icon: QrCode },
-                   { id: 'TRANSFERENCIA', label: 'Transf.', icon: ArrowRightLeft }
-                 ].map(method => (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                 {paymentConfigs.filter(c => c.isActive).map(method => (
                    <button 
                      key={method.id} 
-                     onClick={() => handleChangePayment(method.id as PaymentMethod)}
+                     onClick={() => handleChangePayment(method.type)}
                      className="p-10 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center gap-4 hover:border-primary hover:bg-primary/10 transition-all transform active:scale-95"
                    >
-                      <method.icon size={40} className="text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{method.label}</span>
+                      <Banknote size={40} className="text-slate-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{method.name}</span>
                    </button>
                  ))}
               </div>

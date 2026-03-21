@@ -292,13 +292,28 @@ export const sqlMigrationService = {
 
       // 4. ATUALIZAR SETTINGS DA APLICAÇÃO
       try {
-        const { error: stateError } = await supabase
-          .from('app_settings')
-          .upsert({
-            restaurant_name: localData.settings?.restaurantName || 'REST IA OS',
-            updated_at: new Date().toISOString()
-          });
-        if (stateError) console.error('Erro sincronizando estado:', stateError);
+        // SEMPRE SALVAR LOCALMENTE PRIMEIRO (independente do Supabase)
+        console.log('💾 Salvando configurações localmente...');
+        
+        // VERIFICAR SE SUPABASE ESTÁ CONFIGURADO PARA SINCRONIZAR TAMBÉM
+        const supabaseConfigured = !!(settings.supabaseUrl || settings.supabaseKey);
+        
+        if (supabaseConfigured) {
+          console.log('🌐 Supabase configurado - sincronizando com a nuvem...');
+          const { error: stateError } = await supabase
+            .from('app_settings')
+            .upsert({
+              restaurant_name: localData.settings?.restaurantName || 'REST IA OS',
+              updated_at: new Date().toISOString()
+            });
+          if (stateError) {
+            console.error('Erro sincronizando estado:', stateError);
+          } else {
+            console.log('✅ Configurações sincronizadas com sucesso!');
+          }
+        } else {
+          console.log('📱 Supabase não configurado - salvando apenas localmente');
+        }
       } catch (err) {
         console.error('Erro crítico nos settings:', err);
       }

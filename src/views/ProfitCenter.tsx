@@ -28,20 +28,60 @@ const ProfitCenter = () => {
   const metrics = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     
+    // DEBUG: Mostrar informações básicas
+    console.log('[PROFIT CENTER] DEBUG - Data de hoje:', today);
+    console.log('[PROFIT CENTER] DEBUG - ActiveOrders totais:', activeOrders.length);
+    console.log('[PROFIT CENTER] DEBUG - ClosedOrders:', closedOrders.length);
+    console.log('[PROFIT CENTER] DEBUG - Expenses totais:', expenses.length);
+    console.log('[PROFIT CENTER] DEBUG - Employees totais:', employees.length);
+    
+    // DEBUG: Mostrar pedidos com datas
+    const todayOrdersDebug = closedOrders.filter(order => {
+      const orderDate = String(order.timestamp || '').split('T')[0];
+      console.log('[PROFIT CENTER] DEBUG - Pedido:', {
+        id: order.id,
+        status: order.status,
+        timestamp: order.timestamp,
+        date: orderDate,
+        total: order.total,
+        total_amount: order.total_amount
+      });
+      return orderDate === today;
+    });
+    
     // VENDAS HOJE: Mesma lógica do Dashboard
-    const todayOrders = closedOrders.filter(order => 
-      String(order.timestamp || '').split('T')[0] === today
-    );
-    const revenue = todayOrders.reduce((a, b) => a + (b.total_amount || 0), 0);
+    const todayOrders = todayOrdersDebug;
+    const revenue = todayOrders.reduce((a, b) => a + (b.total_amount || b.total || 0), 0);
+    
+    // DEBUG: Mostrar despesas com datas
+    const todayExpensesDebug = expenses.filter(expense => {
+      const expenseDate = String(expense.created_at || expense.createdAt || '').split('T')[0];
+      console.log('[PROFIT CENTER] DEBUG - Despesa:', {
+        id: expense.id,
+        created_at: expense.created_at,
+        createdAt: expense.createdAt,
+        date: expense.date,
+        computedDate: expenseDate,
+        amount: expense.amount,
+        amount_kz: expense.amount_kz
+      });
+      return expenseDate === today;
+    });
     
     // DESPESAS HOJE: Mesma lógica do Dashboard
-    const todayExpenses = expenses.filter(expense => 
-      String(expense.created_at || '').split('T')[0] === today
-    );
-    const variableCosts = todayExpenses.reduce((acc, exp) => acc + Number(exp.amount_kz || 0), 0);
+    const todayExpenses = todayExpensesDebug;
+    const variableCosts = todayExpenses.reduce((acc, exp) => acc + Number(exp.amount_kz || exp.amount || 0), 0);
     
     // CUSTOS FIXOS: Soma de base_salary_kz da tabela staff (mantido)
-    const fixedCosts = employees.reduce((acc, emp) => acc + Number(emp.salary || 0), 0);
+    const fixedCosts = employees.reduce((acc, emp) => {
+      console.log('[PROFIT CENTER] DEBUG - Funcionário:', {
+        id: emp.id,
+        name: emp.name,
+        salary: emp.salary,
+        base_salary_kz: emp.base_salary_kz
+      });
+      return acc + Number(emp.salary || emp.base_salary_kz || 0);
+    }, 0);
     
     // IMPOSTOS: Taxa de 6.5% sobre vendas (mesma lógica do Dashboard)
     const tax = revenue * 0.065;
@@ -53,28 +93,67 @@ const ProfitCenter = () => {
     // Lucro por modalidade - APENAS VENDAS DE HOJE
     // Fix: Added explicit typing to Record<string, number> to prevent 'unknown' types in Object.entries mapping
     const byMethod = todayOrders.reduce((acc: Record<string, number>, o) => {
-      const m = o.payment_method || 'OUTRO';
-      acc[m] = (acc[m] || 0) + (o.total || 0);
+      const m = o.payment_method || o.paymentMethod || 'OUTRO';
+      console.log('[PROFIT CENTER] DEBUG - Pagamento:', {
+        orderId: o.id,
+        payment_method: o.payment_method,
+        paymentMethod: o.paymentMethod,
+        finalMethod: m,
+        total: o.total || o.total_amount
+      });
+      acc[m] = (acc[m] || 0) + (o.total || o.total_amount || 0);
       return acc;
     }, {} as Record<string, number>);
 
+    // DEBUG FINAL - Mostrar todos os métodos agrupados
+    console.log('[PROFIT CENTER] DEBUG - byMethod final:', byMethod);
+    console.log('[PROFIT CENTER] DEBUG - todayOrders:', todayOrders);
+
     // Top produtos por Margem de Contribuição (Lucro real, não volume)
     const productProfit: Record<string, { name: string, profit: number, qty: number }> = {};
-    closedOrders.flatMap(o => o.items).forEach(i => {
-        if (!productProfit[i.dishId]) {
-            const dish = menu.find(d => d.id === i.dishId);
-            productProfit[i.dishId] = { name: dish?.name || 'Desconhecido', profit: 0, qty: 0 };
+    closedOrders.forEach(order => {
+      order.items?.forEach(item => {
+        console.log('[PROFIT CENTER] DEBUG - Item:', {
+          orderId: order.id,
+          dishId: item.dish?.id || item.dishId,
+          dish: item.dish,
+          quantity: item.quantity
+        });
+        
+        const dishIdForProduct = item.dish?.id || item.dishId;
+        
+        if (!productProfit[dishIdForProduct]) {
+            const dish = menu.find(d => d.id === dishIdForProduct);
+            productProfit[dishIdForProduct] = { 
+              name: dish?.name || `Produto ID: ${dishIdForProduct}`, 
+              profit: 0, 
+              qty: 0 
+            };
         }
         // CÁLCULO DA MARGEM: (price - cost_price) * unidades_vendidas
-        const dish = menu.find(d => d.id === i.dishId);
-        const itemProfit = (dish?.price || 0 - dish?.cost_price || 0) * i.quantity;
-        productProfit[i.dishId].profit += itemProfit;
-        productProfit[i.dishId].qty += i.quantity;
+        const dish = menu.find(d => d.id === dishIdForProduct);
+        const itemProfit = (dish?.price || 0 - dish?.cost_price || 0) * item.quantity;
+        productProfit[dishIdForProduct].profit += itemProfit;
+        productProfit[dishIdForProduct].qty += item.quantity;
+      });
     });
 
     const topMarginProducts = Object.values(productProfit)
       .sort((a, b) => b.profit - a.profit)
       .slice(0, 5);
+
+    console.log('[PROFIT CENTER] DEBUG - Cálculos finais:', {
+      todayOrders: todayOrders.length,
+      revenue,
+      todayExpenses: todayExpenses.length,
+      variableCosts,
+      fixedCosts,
+      tax,
+      netProfit,
+      margin,
+      byMethod,
+      topMarginProducts
+    });
 
     return {
       revenue,
@@ -90,6 +169,7 @@ const ProfitCenter = () => {
   }, [closedOrders, expenses, employees, menu]);
 
   const handleExportProfitReport = () => {
+    console.log('[PROFIT CENTER] Exportando relatório - todayOrders:', metrics.todayOrders.length);
     if (metrics.todayOrders.length === 0) {
       addNotification('warning', 'Nenhuma venda hoje para exportar.');
       return;
@@ -291,8 +371,14 @@ const ProfitCenter = () => {
               <Layers className="text-orange-500" /> Top Margens de Contribuição
             </h3>
             <div className="space-y-6">
-               {metrics.topMarginProducts.map((p, i) => (
-                 <div key={i} className="flex items-center justify-between group">
+               {metrics.topMarginProducts.length === 0 ? (
+                <p className="text-center text-slate-600 py-10 italic">
+                  Processando algoritmos de margem...<br/>
+                  <span className="text-xs">Nenhum produto encontrado para o período atual</span>
+                </p>
+               ) : (
+                metrics.topMarginProducts.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-black text-slate-500 group-hover:text-primary transition-colors">0{i+1}</div>
                        <div>
@@ -304,9 +390,9 @@ const ProfitCenter = () => {
                        <p className="text-emerald-500 font-mono font-bold">{(p.profit || 0).toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' })}</p>
                        <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">LUCRO PURO</p>
                     </div>
-                 </div>
-               ))}
-               {metrics.topMarginProducts.length === 0 && <p className="text-center text-slate-600 py-10 italic">Processando algoritmos de margem...</p>}
+                  </div>
+                ))
+               )}
             </div>
          </div>
 

@@ -113,14 +113,14 @@ const Dashboard = () => {
           const today = new Date().toISOString().split('T')[0];
           const { data: ordersData, error: ordersError } = await supabase
             .from('orders')
-            .select('total_amount, created_at')
+            .select('total_amount, created_at, timestamp')
             .eq('status', 'closed');
 
           if (!ordersError && ordersData) {
             // Filtrar por data no front-end
             vendasHoje = ordersData
-              .filter(order => String(order.created_at || '').split('T')[0] === today)
-              .reduce((acc, order) => acc + (Number(order.total_amount) || 0), 0);
+              .filter(order => String(order.timestamp || order.created_at || '').split('T')[0] === today)
+              .reduce((acc, order) => acc + (Number(order.total_amount || 0)), 0);
             
             console.log('[DASHBOARD PRINCIPAL] Vendas Hoje (Query Simples):', {
               total: vendasHoje,
@@ -216,10 +216,10 @@ const Dashboard = () => {
         console.log('[DASHBOARD PRINCIPAL] Rendimento Global:', rendimentoGlobal);
         
         const mockMetrics = {
-          totalVendas: totalSales,
+          totalVendas: vendasHoje,
           despesas: totalExpenses,
           folhaSalarial: totalPayroll,
-          lucroLiquido: (totalSales || 0) - (totalExpenses || 0) - (totalPayroll || 0) - ((totalSales || 0) * 0.065 || 0),
+          lucroLiquido: (vendasHoje || 0) - (totalExpenses || 0) - (totalPayroll || 0) - ((vendasHoje || 0) * 0.065 || 0),
           rendimentoGlobal: rendimentoGlobal
         };
         

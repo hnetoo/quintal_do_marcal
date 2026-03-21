@@ -9,6 +9,23 @@ const formatKz = (val: number) =>
     maximumFractionDigits: 0 
   }).format(val);
 
+// Comandos genéricos para impressora térmica
+const getThermalCommands = () => {
+  return `
+    <script>
+      window.onload = function() {
+        // Enviar comandos genéricos para impressora térmica
+        const printCommands = document.createElement('div');
+        printCommands.innerHTML = 
+          String.fromCharCode(27) + String.fromCharCode(112) + String.fromCharCode(0) + String.fromCharCode(60) + String.fromCharCode(255) + // Abrir gaveta (ESC p 0 < 255)
+          String.fromCharCode(29) + String.fromCharCode(86) + String.fromCharCode(0); // Corte total (ESC V 0)
+        document.body.appendChild(printCommands);
+        window.print();
+      };
+    </script>
+  `;
+};
+
 const thermalStyles = `
   @page { 
     margin: 0; 
@@ -247,6 +264,7 @@ export const printThermalInvoice = (
           <br/>
           <b>VEREDA OS v1.0.6</b>
         </div>
+        ${getThermalCommands()}
       </body>
     </html>
   `;
@@ -254,18 +272,65 @@ export const printThermalInvoice = (
   executePrint(html);
 };
 
-export const printCashClosing = (closedToday: Order[], settings: SystemSettings, user: string) => {
+export const printCashClosing = (closedToday: Order[], settings: SystemSettings, user: string, paymentConfigs?: any[]) => {
   const total = closedToday.reduce((acc, o) => acc + o.total, 0);
+  
+  // Agrupar por método de pagamento com mapeamento correto
   const byMethod = closedToday.reduce((acc: any, o) => {
-    const method = o.paymentMethod || 'OUTRO';
+    let method = o.paymentMethod || 'OUTRO';
+    
+    // Mapear métodos para nomes padronizados
+    switch (String(method).toLowerCase()) {
+      case 'cash':
+      case 'numerário':
+      case 'numerario':
+        method = 'Numerário';
+        break;
+      case 'card':
+      case 'tpa':
+      case 'multicaixa':
+      case 'pos':
+      case 'debit':
+      case 'credit':
+        method = 'TPA/Multicaixa';
+        break;
+      case 'transfer':
+      case 'transferência':
+      case 'transferencia':
+      case 'bank':
+        method = 'Transferência Bancária';
+        break;
+      case 'mpesa':
+      case 'm-pesa':
+        method = 'M-Pesa';
+        break;
+      case 'express':
+      case 'referencia':
+      case 'ref':
+        method = 'Referência';
+        break;
+      default:
+        method = 'OUTRO';
+    }
+    
     acc[method] = (acc[method] || 0) + o.total;
     return acc;
   }, {});
 
+  // Adicionar métodos que não tiveram vendas mas estão configurados
+  if (paymentConfigs) {
+    paymentConfigs.forEach((config: any) => {
+      if (config.isActive && !byMethod[config.name]) {
+        byMethod[config.name] = 0;
+      }
+    });
+  }
+
   console.log(`[PRINT] Gerando HTML para Fecho de Caixa`, {
     total,
     pedidos: closedToday.length,
-    operador: user
+    operador: user,
+    metodos: Object.keys(byMethod)
   });
 
   const html = `
@@ -304,11 +369,18 @@ export const printCashClosing = (closedToday: Order[], settings: SystemSettings,
           TOTAL GERAL: ${formatKz(total)}
         </div>
 
+        <div class="divider"></div>
+        <div class="text-center">
+          <div class="bold">ASSINATURA OPERADOR</div>
+          <div style="height: 40px; border-bottom: 1px solid #000; width: 150px; margin: 0 auto;"></div>
+        </div>
+
         <div class="legal-footer">
           RELATÓRIO DE USO INTERNO
           <br/>
           <b>VEREDA OS v1.0.6</b>
         </div>
+        ${getThermalCommands()}
       </body>
     </html>
   `;

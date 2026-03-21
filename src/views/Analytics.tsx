@@ -22,24 +22,58 @@ const Analytics = () => {
   const realMetrics = useMemo(() => {
     const today = String(new Date().toISOString().split('T')[0] || '');
     
+    // DEBUG: Mostrar informações básicas
+    console.log('[ANALYTICS] DEBUG - Data de hoje:', today);
+    console.log('[ANALYTICS] DEBUG - ActiveOrders totais:', activeOrders.length);
+    console.log('[ANALYTICS] DEBUG - Expenses totais:', expenses.length);
+    
+    // DEBUG: Mostrar pedidos com datas
+    const todayOrdersDebug = activeOrders.filter(order => {
+      const orderDate = String(order.timestamp || '').split('T')[0];
+      console.log('[ANALYTICS] DEBUG - Pedido:', {
+        id: order.id,
+        status: order.status,
+        timestamp: order.timestamp,
+        date: orderDate,
+        total: order.total
+      });
+      return ['FECHADO', 'closed', 'paid'].includes(order.status) && orderDate === today;
+    });
+    
     // Vendas Hoje: filtrar pedidos fechados de hoje (incluindo todos os status de venda)
-    const todayOrders = activeOrders.filter(order => 
-      ['FECHADO', 'closed', 'paid'].includes(order.status) && 
-      String(order.timestamp || '').split('T')[0] === today
-    );
+    const todayOrders = todayOrdersDebug;
     
     const totalSalesToday = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
     const totalOrdersToday = todayOrders.length;
     const ticketMedio = totalOrdersToday > 0 ? totalSalesToday / totalOrdersToday : 0;
     
+    // DEBUG: Mostrar despesas com datas
+    const todayExpensesDebug = expenses.filter(expense => {
+      const expenseDate = String(expense.date || expense.createdAt || '').split('T')[0];
+      console.log('[ANALYTICS] DEBUG - Despesa:', {
+        id: expense.id,
+        date: expense.date,
+        createdAt: expense.createdAt,
+        computedDate: expenseDate,
+        amount: expense.amount
+      });
+      return expenseDate === today;
+    });
+    
     // Custo de Compras: expenses de hoje
-    const todayExpenses = expenses.filter(expense => 
-      String(expense.createdAt || '').split('T')[0] === today
-    );
+    const todayExpenses = todayExpensesDebug;
     const totalExpensesToday = todayExpenses.reduce((acc, expense) => acc + Number(expense.amount || 0), 0);
     
     // Lucro Bruto
     const lucroBruto = (totalSalesToday || 0) - (totalExpensesToday || 0);
+    
+    console.log('[ANALYTICS] DEBUG - Cálculos finais:', {
+      todayOrders: todayOrders.length,
+      totalSalesToday,
+      totalExpensesToday,
+      lucroBruto,
+      ticketMedio
+    });
     
     return {
       totalSalesToday,
@@ -123,21 +157,34 @@ const Analytics = () => {
     // Filtrar apenas pedidos fechados (incluindo todos os status de venda)
     const closedOrders = activeOrders.filter(order => ['FECHADO', 'closed', 'paid'].includes(order.status));
     
+    console.log('[ANALYTICS] Top Produtos - Pedidos fechados:', closedOrders.length);
+    console.log('[ANALYTICS] Top Produtos - Menu items:', menu.length);
+    
     closedOrders.flatMap((order: any) => order.items || []).forEach((item: any) => {
-      const dish = menu.find(d => d.id === item.dishId);
-      if (!productSales[item.dishId]) {
-        productSales[item.dishId] = {
-          name: dish?.name || 'Desconhecido',
-          category: dish?.category || 'Outros',
+      // Corrigir: o dish está dentro de item.dish, não precisa buscar no menu
+      const dishData = item.dish; // Já vem os dados do produto
+      
+      console.log('[ANALYTICS] Item:', item, 'Dish encontrado:', dishData);
+      
+      // Usar o ID do dish dentro de item.dish
+      const dishId = dishData?.id || item.dishId;
+      
+      if (!productSales[dishId]) {
+        productSales[dishId] = {
+          name: dishData?.name || `Produto ID: ${dishId}`,
+          category: dishData?.categoryId ? `Cat: ${dishData.categoryId}` : 'Sem categoria',
           sales: 0
         };
       }
-      productSales[item.dishId].sales += item.quantity || 0;
+      productSales[dishId].sales += item.quantity || 0;
     });
 
-    return Object.values(productSales)
+    const result = Object.values(productSales)
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5);
+    
+    console.log('[ANALYTICS] Top Produtos Resultado:', result);
+    return result;
   }, [activeOrders, menu]);
 
   // REMOVER ARRAY DE DADOS FICTÍCIOS - APENAS USAR DADOS REAIS
@@ -160,12 +207,15 @@ const Analytics = () => {
       console.log('[ANALYTICS] Campo amount_kz:', expense.amount_kz);
       
       // USAR CATEGORIA REAL - CONFORME TIPO Expense
-      let categoryName = String(expense.category || 'OUTROS');
+      let categoryName = String(expense.category || 'OUTROS').trim();
       
-      // ÚLTIMO RESGUARDO - NUNCA undefined
-      if (!categoryName || categoryName === 'undefined' || categoryName === '') {
+      // ÚLTIMO RESGUARDO - NUNCA undefined ou vazio
+      if (!categoryName || categoryName === 'undefined' || categoryName === '' || categoryName === 'null') {
         categoryName = 'OUTROS';
       }
+      
+      // Remover possíveis "undefined" do nome
+      categoryName = categoryName.replace(/undefined/gi, '').trim() || 'OUTROS';
       
       console.log('[ANALYTICS] CATEGORIA FINAL:', categoryName);
       console.log('[ANALYTICS] VALOR:', expense.amount || 0);
@@ -174,18 +224,22 @@ const Analytics = () => {
         grouped[categoryName] = 0;
       }
       
-      // USAR amount (campo real do log)
-      const valor = Number(expense.amount || 0);
-      grouped[categoryName] += valor;
+      // USAR amount (campo real do log) - garantir número válido
+      const valor = Number(expense.amount) || 0;
+      if (!isNaN(valor) && valor > 0) {
+        grouped[categoryName] += valor;
+      }
     });
 
     const total = Object.values(grouped).reduce((acc, val) => acc + val, 0);
     
-    const chartData = Object.entries(grouped).map(([category, amount]) => ({
-      name: category,
-      value: amount,
-      percentage: total > 0 ? (amount / total) * 100 : 0
-    }));
+    const chartData = Object.entries(grouped)
+      .filter(([_, amount]) => amount > 0) // Filtrar valores zerados
+      .map(([category, amount]) => ({
+        name: category,
+        value: amount,
+        percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+      }));
     
     // LOG FINAL PARA VERIFICAÇÃO
     console.log('[ANALYTICS] === DADOS FINAIS DO GRÁFICO ===');
@@ -377,8 +431,8 @@ const Analytics = () => {
                 />
                 <Legend 
                   wrapperStyle={{ color: '#9ca3af' }}
-                  formatter={(value: number, entry: any) => 
-                    `${entry.name}: ${entry.payload.percentage.toFixed(1)}%`
+                  formatter={(value: any, entry: any) => 
+                    `${entry?.payload?.name || 'Categoria'}: ${entry?.payload?.percentage?.toFixed(1) || 0}%`
                   }
                 />
               </RePieChart>

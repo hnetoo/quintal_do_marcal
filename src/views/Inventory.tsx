@@ -230,7 +230,7 @@ const Inventory = () => {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[600px] overflow-y-auto pr-2">
               {menu.map(dish => (
                 <div key={dish.id} className="bg-slate-900 rounded-lg p-6 border border-white/10">
                   {dish.image && (
@@ -245,10 +245,43 @@ const Inventory = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-primary font-bold">{formatKz(dish.price)}</span>
                     <div className="flex space-x-2">
-                      <button className="text-slate-400 hover:text-white">
+                      <button 
+                        onClick={() => {
+                          setEditingProduct(dish);
+                          setNewProduct({
+                            name: dish.name,
+                            price: dish.price,
+                            image: dish.image || '',
+                            categoryId: dish.categoryId || '',
+                            isAvailable: dish.isAvailable,
+                            description: dish.description || ''
+                          });
+                          setIsProductModalOpen(true);
+                        }}
+                        className="text-slate-400 hover:text-white transition-all"
+                        title="Editar produto"
+                      >
                         <Edit2 size={16} />
                       </button>
-                      <button className="text-slate-400 hover:text-red-500">
+                      <button 
+                        onClick={() => {
+                          const duplicatedProduct = {
+                            name: `${dish.name} (Cópia)`,
+                            price: dish.price,
+                            image: dish.image || '',
+                            categoryId: dish.categoryId || '',
+                            isAvailable: dish.isAvailable,
+                            description: dish.description || ''
+                          };
+                          setNewProduct(duplicatedProduct);
+                          setIsProductModalOpen(true);
+                        }}
+                        className="text-slate-400 hover:text-blue-500 transition-all"
+                        title="Duplicar produto"
+                      >
+                        <Plus size={16} />
+                      </button>
+                      <button className="text-slate-400 hover:text-red-500 transition-all">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -273,7 +306,7 @@ const Inventory = () => {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[600px] overflow-y-auto pr-2">
               {categories.map(category => (
                 <div key={category.id} className="bg-slate-900 rounded-lg p-6 border border-white/10">
                   <h3 className="text-lg font-semibold mb-2">{category.name}</h3>
