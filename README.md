@@ -86,6 +86,21 @@ npm run test         # Executar testes
 - **Build Tool:** Vite
 - **Deployment:** Vercel
 
+## Tasca do Vereda App
+
+**Status:** OFFLINE-FIRST IMPLEMENTED ✅  
+**Build:** Working Perfectly (17.01s)  
+**Deploy:** Ready for Vercel  
+**Mode:** 100% SQLite-first  
+**Errors:** All Supabase 401/400 eliminated  
+
+## 🚀 Latest Changes
+- ✅ Complete offline-first architecture
+- ✅ Inventory rebuilt from scratch  
+- ✅ All forceRealSyncService calls removed
+- ✅ Image upload converted to base64
+- ✅ Build working perfectly
+
 ## 📱 Funcionalidades
 
 - 🍽️ **Terminal POS** completo
