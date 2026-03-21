@@ -19,6 +19,17 @@ export const supabase = createClient(
       storageKey: 'rest-ia-auth',
       storage: window.localStorage
     },
+    db: {
+      schema: 'public',
+      global: {
+        get: () => (window as any).__TAURI__ ? 'supabase_key' : supabaseAnonKey,
+        set: (key: string) => {
+          if ((window as any).__TAURI__) {
+            (window as any).__TAURI__.supabaseKey = key;
+          }
+        }
+      }
+    },
     realtime: {
       params: {
         eventsPerSecond: 2
