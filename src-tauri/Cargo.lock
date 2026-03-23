@@ -1703,6 +1703,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-range"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21dec9db110f5f872ed9699c3ecf50cf16f423502706ba5c72462e28d3157573"
+
+[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4527,6 +4533,7 @@ dependencies = [
  "gtk",
  "heck 0.5.0",
  "http 1.4.0",
+ "http-range",
  "jni",
  "libc",
  "log",
@@ -4698,6 +4705,8 @@ dependencies = [
  "thiserror 2.0.18",
  "time",
  "url",
+ "win7-notifications",
+ "windows-version",
 ]
 
 [[package]]
@@ -5646,6 +5655,16 @@ checksum = "5d4a4db5077702ca3015d3d02d74974948aba2ad9e12ab7df718ee64ccd7e97d"
 dependencies = [
  "libredox",
  "wasite",
+]
+
+[[package]]
+name = "win7-notifications"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63b4745047a00800bd8f2b8fb4b0eb6f7d96822084127f0ff7d68d07f692fe38"
+dependencies = [
+ "once_cell",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

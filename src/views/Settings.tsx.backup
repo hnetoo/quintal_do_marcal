@@ -82,26 +82,7 @@ const Settings = () => {
 
   // Fetch staff data
   useEffect(() => { 
-    console.log('[SETTINGS] useEffect - settings do store:', {
-      taxRegime: settings.taxRegime,
-      taxRate: settings.taxRate
-    });
-    console.log('[SETTINGS] useEffect - localSettings atuais:', {
-      taxRegime: localSettings.taxRegime,
-      taxRate: localSettings.taxRate
-    });
-    
-    // NUNCA sobrescrever localSettings se o usuário já selecionou valores
-    // Apenas aplicar se localSettings estiver vazio ou indefinido
-    if (!localSettings.taxRegime || !localSettings.taxRate || localSettings.taxRate === 0) {
-      if (settings.taxRegime && settings.taxRate > 0) {
-        console.log('[SETTINGS] Aplicando settings do store (localSettings está vazio)');
-        setLocalSettings(settings);
-      }
-    } else {
-      console.log('[SETTINGS] Mantendo localSettings (usuário já selecionou valores)');
-    }
-    
+    setLocalSettings(settings);
     fetchStaff();
   }, [settings]);
 
@@ -199,31 +180,15 @@ const Settings = () => {
     setIsSaving(true);
     await new Promise(r => setTimeout(r, 400));
     
-    // 🔍 VERIFICAÇÃO CRÍTICA: Garantir que estamos enviando os valores corretos
-    // PEGAR VALORES DIRETAMENTE DO SELECT ATUAL
-    const selectedRegime = (document.querySelector('select[name="taxRegime"]') as HTMLSelectElement)?.value;
-    const selectedRate = (document.querySelector('select[name="taxRegime"]') as HTMLSelectElement)?.selectedOptions[0]?.getAttribute('data-rate');
-    
-    const dadosParaGravar = {
-      taxRegime: selectedRegime || localSettings.taxRegime || 'SIMPLIFICADO',
-      taxRate: selectedRate ? parseInt(selectedRate) : (localSettings.taxRate || 7)
+    // Garantir que o regime fiscal e taxa sejam salvos corretamente
+    const settingsToSave = {
+      ...localSettings,
+      taxRegime: localSettings.taxRegime,
+      taxRate: localSettings.taxRate
     };
     
-    console.log('💾 [GRAVANDO AGORA]:', dadosParaGravar);
-    console.log('🔍 [FISCAL DEBUG] SELECT ATUAL - regime:', selectedRegime, 'rate:', selectedRate);
-    
-    // 🔍 IMPORTANTE: Garantir que o objeto está correto antes de enviar
-    if (!dadosParaGravar.taxRegime || dadosParaGravar.taxRate === undefined || dadosParaGravar.taxRate === null) {
-      console.error('❌ ERRO: Tentando gravar valores vazios ou indefinidos!');
-      addNotification('error', 'Erro: Valores fiscais inválidos');
-      setIsSaving(false);
-      return;
-    }
-    
-    // 🔍 FISCAL (A Origem do Erro): Passar valores explícitos para updateSettings
-    console.log('🔍 [FISCAL DEBUG] Chamando updateSettings com:', dadosParaGravar);
-    updateSettings(dadosParaGravar);
-    addNotification('success', 'Definições do ecossistema salvas.');
+    updateSettings(settingsToSave);
+    addNotification('success', 'Definições fiscais salvas com sucesso.');
     setIsSaving(false);
   };
 

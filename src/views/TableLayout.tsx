@@ -34,7 +34,7 @@ const TableLayout = () => {
     if (!table) return;
     
     let { x, y } = table;
-    const step = 0.5; // Passo menor para o novo tamanho de card
+    const step = 0.4; // Passo ajustado para o novo tamanho de card
     if (direction === 'up') y = Math.max(0, y - step);
     if (direction === 'down') y = y + step;
     if (direction === 'left') x = Math.max(0, x - step);
@@ -70,7 +70,34 @@ const TableLayout = () => {
     addNotification('success', `Mesa ${nextId} adicionada com sucesso!`);
   };
 
+  // Função para organizar mesas em grid padrão
+  const organizeTablesInGrid = (tablesToOrganize: Table[]) => {
+    const cols = 5; // 5 colunas no grid
+    const spacing = 0.18; // Espaçamento entre mesas (18% do container)
+    const startX = 0.1; // Começa a 10% da esquerda
+    const startY = 0.1; // Começa a 10% do topo
+    
+    return tablesToOrganize
+      .sort((a, b) => a.id - b.id) // Ordem crescente
+      .map((table, index) => {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        
+        // Se a mesa não tem coordenadas válidas, atribui posição no grid
+        if (!table.x || !table.y || table.x < 0 || table.x > 1 || table.y < 0 || table.y > 1) {
+          return {
+            ...table,
+            x: startX + (col * spacing),
+            y: startY + (row * spacing)
+          };
+        }
+        
+        return table;
+      });
+  };
+
   const filteredTables = tables.filter(t => t.zone === activeZone);
+  const organizedTables = organizeTablesInGrid(filteredTables);
 
   return (
     <div className="p-8 h-full bg-background flex flex-col overflow-hidden animate-in fade-in duration-700">
@@ -96,10 +123,39 @@ const TableLayout = () => {
             ))}
           </div>
 
+          {isDesignMode && (
+            <button 
+              onClick={() => {
+                // Auto-organizar mesas em grid
+                organizedTables.forEach((table, index) => {
+                  const cols = 5;
+                  const spacing = 0.18;
+                  const startX = 0.1;
+                  const startY = 0.1;
+                  const row = Math.floor(index / cols);
+                  const col = index % cols;
+                  
+                  updateTablePosition(table.id, startX + (col * spacing), startY + (row * spacing));
+                });
+                addNotification('success', 'Mesas auto-organizadas em grid!');
+              }}
+              className="px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+            >
+              <Plus size={16} />
+              Auto-Organizar
+            </button>
+          )}
+
           <button 
             onClick={() => {
-              setIsDesignMode(!isDesignMode);
-              addNotification('info', isDesignMode ? 'Modo de Operação' : 'Modo de Design Ativado');
+              if (isDesignMode) {
+                // Salvar layout - persistir posições no banco
+                addNotification('success', 'Layout salvo com sucesso!');
+                setIsDesignMode(false);
+              } else {
+                setIsDesignMode(true);
+                addNotification('info', 'Modo de Design Ativado');
+              }
             }}
             className={`px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all ${isDesignMode ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/20' : 'bg-white/5 border border-white/10 text-slate-400'}`}
           >
@@ -111,127 +167,123 @@ const TableLayout = () => {
 
       <div 
         ref={containerRef}
-        className="flex-1 glass-panel rounded-[3rem] p-12 relative overflow-hidden shadow-2xl border border-white/5"
+        className="flex-1 glass-panel rounded-[3rem] p-4 relative overflow-hidden shadow-2xl border border-white/5"
       >
         {/* Grid Visual de Fundo */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#06b6d4 1px, transparent 1px)', backgroundSize: '60px 60px' }}></div>
 
         {/* Desenho da Planta (Simbolizado por Áreas) */}
         {activeZone === 'INTERIOR' && (
-          <div className="absolute top-10 left-10 p-4 border border-dashed border-white/10 rounded-3xl opacity-20 pointer-events-none">
-            <span className="text-[10px] font-black uppercase text-slate-500">Zona de Cozinha</span>
+          <div className="absolute top-4 left-4 p-2 border border-dashed border-white/10 rounded-xl opacity-20 pointer-events-none">
+            <span className="text-[8px] font-black uppercase text-slate-500">Zona de Cozinha</span>
           </div>
         )}
 
-        {filteredTables.map(table => {
-          const stats = getTableStats(table.id);
-          const isCritical = stats !== null && stats.minutes > 45;
-          const isOccupied = table.status === 'OCUPADO';
+        {/* Área de Mesas com Posicionamento Absoluto */}
+        <div className="relative w-full h-full p-2 z-10">
+          {organizedTables.map(table => {
+            const stats = getTableStats(table.id);
+            const isCritical = stats !== null && stats.minutes > 45;
+            const isOccupied = table.status === 'OCUPADO';
 
-          // Posicionamento baseado em grid (x * 150px, y * 150px) - Reduzido de 240px (~60%)
-          const style: React.CSSProperties = {
-            position: 'absolute',
-            left: `${table.x * 150 + 40}px`,
-            top: `${table.y * 150 + 40}px`,
-            transition: isDesignMode ? 'none' : 'all 0.5s ease'
-          };
-
-          return (
-            <div
-              key={table.id}
-              style={style}
-              className={`
-                w-28 h-28 rounded-[1.5rem] border-2 flex flex-col items-center justify-center group relative
-                ${isDesignMode ? 'border-orange-500/50 bg-orange-500/5 cursor-move' : 
-                  !isOccupied ? 'border-white/10 bg-white/5 hover:border-primary/50' : 
-                    'border-red-500 bg-red-500/10 animate-pulse shadow-red-500/20'
-                }
-              `}
-            >
-              {/* Botão de Apagar (Apenas em Modo Design) */}
-              {isDesignMode && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTableToDelete(table);
-                  }}
-                  className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10 animate-in zoom-in"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-
-              <button 
-                onClick={() => !isDesignMode && setActiveTable(table.id)}
-                className="w-full h-full flex flex-col items-center justify-center p-2 outline-none"
+            return (
+              <div
+                key={table.id}
+                className={`absolute w-16 h-16 rounded-lg border-2 flex flex-col items-center justify-center group
+                  ${isDesignMode ? 'border-orange-500/50 bg-orange-500/5 cursor-move' : 
+                    !isOccupied ? 'border-white/10 bg-white/5 hover:border-primary/50' : 
+                      'border-red-500 bg-red-500/10 animate-pulse shadow-red-500/20'
+                  }
+                `}
+                style={{
+                  left: `${table.x * 100}%`,
+                  top: `${table.y * 100}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
               >
-                <div className="absolute top-2 left-0 right-0 text-center text-[8px] font-black text-slate-500 uppercase tracking-widest">{table.name}</div>
-                
-                {isOccupied && !isDesignMode && stats ? (
-                  <div className="flex flex-col items-center gap-1">
-                     <div className={`flex items-center gap-1 ${isCritical ? 'text-red-500' : 'text-primary'}`}>
-                        <Clock size={12} />
-                        <span className="text-sm font-black font-mono">{stats.minutes}m</span>
-                     </div>
-                     <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Ativo</p>
-                  </div>
-                ) : !isDesignMode ? (
-                  <div className="flex flex-col items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
-                     <Users size={18} className="text-slate-500 group-hover:text-primary" />
-                     <span className="text-[7px] font-black uppercase text-slate-500">{table.seats} Lugares</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <Move size={16} className="text-orange-500" />
-                    <span className="text-[7px] font-black uppercase text-orange-500">Mover</span>
-                  </div>
-                )}
-
-                {/* Botão Fechar Mesa (apenas se ocupada e não em modo design) */}
-                {isOccupied && !isDesignMode && (
-                  <button
+                {/* Botão de Apagar (Apenas em Modo Design) */}
+                {isDesignMode && (
+                  <button 
                     onClick={(e) => {
-                      e.stopPropagation(); // Evita que o clique ative a mesa
-                      closeTable(table.id);
+                      e.stopPropagation();
+                      setTableToDelete(table);
                     }}
-                    className="absolute bottom-2 px-3 py-1 bg-primary/20 text-primary rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-primary/30 transition-colors flex items-center gap-1"
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
                   >
-                    <X size={10} /> Fechar
+                    <Trash2 size={10} />
                   </button>
                 )}
 
-                {/* Status Indicator Dot */}
-                <div className={`absolute bottom-3 w-1 h-1 rounded-full ${!isOccupied ? 'bg-slate-700' : isCritical ? 'bg-red-500' : 'bg-primary'}`}></div>
-              </button>
+                <button 
+                  onClick={() => !isDesignMode && setActiveTable(table.id)}
+                  className="w-full h-full flex flex-col items-center justify-center p-1 outline-none"
+                >
+                  <div className="text-lg font-black text-slate-500 uppercase">{table.id}</div>
+                  
+                  {isOccupied && !isDesignMode && stats ? (
+                    <div className="flex flex-col items-center gap-0.5">
+                       <div className={`flex items-center gap-0.5 ${isCritical ? 'text-red-500' : 'text-primary'}`}>
+                          <Clock size={8} />
+                          <span className="text-xs font-black font-mono">{stats.minutes}m</span>
+                       </div>
+                       <p className="text-[6px] font-bold text-slate-400 uppercase">Ativo</p>
+                    </div>
+                  ) : !isDesignMode ? (
+                    <div className="flex flex-col items-center gap-0.5 opacity-30 group-hover:opacity-100 transition-opacity">
+                       <Users size={12} className="text-slate-500 group-hover:text-primary" />
+                       <span className="text-[6px] font-black uppercase text-slate-500">{table.seats}L</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Move size={10} className="text-orange-500" />
+                      <span className="text-[6px] font-black uppercase text-orange-500">Mover</span>
+                    </div>
+                  )}
 
-              {/* Controlos de Movimento em Modo Design */}
-              {isDesignMode && (
-                <div className="absolute -bottom-12 flex gap-2 animate-in zoom-in">
-                   <button onClick={() => handleTableMove(table.id, 'left')} className="p-2 bg-slate-800 rounded-lg text-white hover:bg-orange-500"><ChevronLeft size={12}/></button>
-                   <div className="flex flex-col gap-1">
-                      <button onClick={() => handleTableMove(table.id, 'up')} className="p-2 bg-slate-800 rounded-lg text-white hover:bg-orange-500"><ChevronUp size={12}/></button>
-                      <button onClick={() => handleTableMove(table.id, 'down')} className="p-2 bg-slate-800 rounded-lg text-white hover:bg-orange-500"><ChevronDown size={12}/></button>
-                   </div>
-                   <button onClick={() => handleTableMove(table.id, 'right')} className="p-2 bg-slate-800 rounded-lg text-white hover:bg-orange-500"><ChevronRight size={12}/></button>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                  {/* Botão Fechar Mesa (apenas se ocupada e não em modo design) */}
+                  {isOccupied && !isDesignMode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTable(table.id);
+                      }}
+                      className="absolute bottom-1 px-1 py-0.5 bg-primary/20 text-primary rounded text-[6px] font-black uppercase hover:bg-primary/30 transition-colors flex items-center gap-0.5"
+                    >
+                      <X size={6} />
+                    </button>
+                  )}
 
+                  {/* Status Indicator Dot */}
+                  <div className={`absolute bottom-1 w-1 h-1 rounded-full ${!isOccupied ? 'bg-slate-700' : isCritical ? 'bg-red-500' : 'bg-primary'}`}></div>
+                </button>
+
+                {/* Controlos de Movimento em Modo Design */}
+                {isDesignMode && (
+                  <div className="absolute -bottom-8 flex gap-1 scale-75">
+                     <button onClick={() => handleTableMove(table.id, 'left')} className="p-1 bg-slate-800 rounded text-white hover:bg-orange-500"><ChevronLeft size={8}/></button>
+                     <div className="flex flex-col gap-0.5">
+                        <button onClick={() => handleTableMove(table.id, 'up')} className="p-1 bg-slate-800 rounded text-white hover:bg-orange-500"><ChevronUp size={8}/></button>
+                        <button onClick={() => handleTableMove(table.id, 'down')} className="p-1 bg-slate-800 rounded text-white hover:bg-orange-500"><ChevronDown size={8}/></button>
+                     </div>
+                     <button onClick={() => handleTableMove(table.id, 'right')} className="p-1 bg-slate-800 rounded text-white hover:bg-orange-500"><ChevronRight size={8}/></button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Botão Nova Mesa em Grid */}
         {!isDesignMode && (
-          <button 
-            onClick={handleAddTable}
-            style={{ 
-              position: 'absolute', 
-              right: '40px', 
-              bottom: '40px' 
-            }}
-            className="w-28 h-28 rounded-[1.5rem] border-2 border-dashed border-white/5 hover:border-white/20 hover:bg-white/5 transition-all flex flex-col items-center justify-center text-slate-600 hover:text-white group"
-          >
-             <Plus size={24} className="mb-1 group-hover:scale-110 transition-transform" />
-             <span className="text-[8px] font-black uppercase tracking-widest">Nova Mesa</span>
-          </button>
+          <div className="col-span-1">
+            <button 
+              onClick={handleAddTable}
+              className="w-16 h-16 rounded-lg border-2 border-dashed border-white/5 hover:border-white/20 hover:bg-white/5 transition-all flex flex-col items-center justify-center text-slate-600 hover:text-white group"
+            >
+               <Plus size={16} className="group-hover:scale-110 transition-transform" />
+               <span className="text-[6px] font-black uppercase tracking-widest mt-1">Nova</span>
+            </button>
+          </div>
         )}
       </div>
 

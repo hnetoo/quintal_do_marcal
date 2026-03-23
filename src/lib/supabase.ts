@@ -1,11 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Configuração hardcoded para produção MSI - GARANTIR FUNCIONAMENTO
+const SUPABASE_CONFIG = {
+  url: 'https://tjqljzpbxucuiknxqnju.supabase.co',
+  anonKey: 'sb_publishable_4_-dAijU63HvYN1p9Ri7aA_f-Cl2cBh'
+};
+
+// Tentar usar variáveis de ambiente primeiro (para desenvolvimento)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || SUPABASE_CONFIG.url;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || SUPABASE_CONFIG.anonKey;
+
+console.log('[SUPABASE] Configuração:', {
+  url: supabaseUrl,
+  hasEnv: !!import.meta.env.VITE_SUPABASE_URL,
+  isProduction: !import.meta.env.VITE_SUPABASE_URL
+});
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('[SUPABASE] Erro: Variáveis de ambiente não encontradas');
-  console.error('[SUPABASE] Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY');
+  console.error('[SUPABASE] Erro: Configuração não encontrada');
+  console.error('[SUPABASE] Usando configuração hardcoded para produção');
 }
 
 export const supabase = createClient(
@@ -19,17 +32,6 @@ export const supabase = createClient(
       storageKey: 'rest-ia-auth',
       storage: window.localStorage
     },
-    db: {
-      schema: 'public',
-      global: {
-        get: () => (window as any).__TAURI__ ? 'supabase_key' : supabaseAnonKey,
-        set: (key: string) => {
-          if ((window as any).__TAURI__) {
-            (window as any).__TAURI__.supabaseKey = key;
-          }
-        }
-      }
-    },
     realtime: {
       params: {
         eventsPerSecond: 2
@@ -37,7 +39,8 @@ export const supabase = createClient(
     },
     global: {
       headers: {
-        'X-Client-Info': 'rest-ia-app/1.0.1'
+        'X-Client-Info': 'rest-ia-app/1.0.8',
+        'X-Platform': (window as any).__TAURI__ ? 'desktop' : 'web'
       }
     }
   }

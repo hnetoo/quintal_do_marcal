@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-2020-12/schema",
+  "description": "Desktop capabilities schema",
+  "type": "object",
+  "properties": {
+    "identifier": {
+      "description": "Identifier of the permission set",
+      "type": "string"
+    },
+    "description": {
+      "description": "Description of the permission set",
+      "type": "string"
+    },
+    "windows": {
+      "description": "Array of window identifiers",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "permissions": {
+      "description": "Array of permissions",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

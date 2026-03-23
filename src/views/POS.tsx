@@ -8,25 +8,32 @@ import {
   Banknote, X, Utensils, MoveHorizontal, Sparkles, Loader2,
   ChevronRight, Grid3X3, Tag, ShoppingBasket, FileText,
   UserPlus, History, LogOut, CheckCircle2, MoreVertical,
-  ChevronLeft, Layout, Clock, QrCode, ArrowRightLeft, User, Users, Monitor, Shield, Settings, Trash2, Check, DollarSign
+  ChevronLeft, Layout, Clock, QrCode, ArrowRightLeft, User, Users, Monitor, Shield, Settings, Trash2, Check, DollarSign,
+  ZoomIn, ZoomOut
 } from 'lucide-react';
 import { printThermalInvoice, printTableReview, printCashClosing } from '../lib/printService';
 import ThermalPrinterManager from '../lib/thermalPrinterConfig';
 import LazyImage from '../components/LazyImage';
 import PaymentModal from '../components/PaymentModal';
+import POSInitializer from '../components/POSInitializer';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const POS = () => {
-  const navigate = useNavigate();
-  const { 
-    tables, categories, menu, activeOrders, customers, activeTableId, activeOrderId,
-    setActiveTable, setActiveOrder, createNewOrder, addToOrder, removeFromOrder, checkoutTable, 
-    updateOrderPaymentMethod,
-    updateTablePosition, addTable, updateTable, removeTable, closeTable,
-    currentUser, logout, settings, updateSettings, notifications, addNotification,
-    paymentConfigs, customerDisplayMode, setCustomerDisplayMode
-  } = useStore();
+  console.log('[POS] Componente iniciando...');
+  
+  try {
+    const navigate = useNavigate();
+    const { 
+      tables, categories, menu, activeOrders, customers, activeTableId, activeOrderId,
+      setActiveTable, setActiveOrder, createNewOrder, addToOrder, removeFromOrder, checkoutTable, 
+      updateOrderPaymentMethod,
+      updateTablePosition, addTable, updateTable, removeTable, closeTable,
+      currentUser, logout, settings, updateSettings, notifications, addNotification,
+      paymentConfigs, customerDisplayMode, setCustomerDisplayMode
+    } = useStore();
+
+    console.log('[POS] Store carregado:', { tables: tables.length, categories: categories.length, menu: menu.length });
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('TODOS');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +54,196 @@ const POS = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedSubAccount, setSelectedSubAccount] = useState<any>(null);
   
-  // Estados para o sistema de caixa
+  // Estado de zoom para o POS
+  const [posZoomLevel, setPosZoomLevel] = useState(1);
+
+  // Funções de zoom para o POS
+  const handlePosZoomIn = () => {
+    setPosZoomLevel(prev => Math.min(prev + 0.1, 1.5));
+  };
+
+  const handlePosZoomOut = () => {
+    setPosZoomLevel(prev => Math.max(prev - 0.1, 0.4)); // Mínimo de 40%
+  };
+
+  // Funções para ajustar quantidade diretamente no carrinho
+  const handleIncreaseQuantity = (itemIndex: number) => {
+    console.log('[POS DEBUG] Aumentando quantidade do item:', itemIndex);
+    
+    if (!currentOrder) {
+      console.error('[POS ERROR] currentOrder é null');
+      return;
+    }
+    
+    if (!currentOrder.items || !Array.isArray(currentOrder.items)) {
+      console.error('[POS ERROR] currentOrder.items não é um array:', currentOrder.items);
+      return;
+    }
+    
+    if (!currentOrder.items[itemIndex]) {
+      console.error('[POS ERROR] Item não encontrado no índice:', itemIndex);
+      return;
+    }
+    
+    const item = currentOrder.items[itemIndex];
+    
+    try {
+      // Validação adicional dos dados
+      if (typeof item.quantity !== 'number' || typeof item.unitPrice !== 'number') {
+        console.error('[POS ERROR] Tipos inválidos:', { quantity: item.quantity, unitPrice: item.unitPrice });
+        return;
+      }
+      
+      console.log('[POS DEBUG] Item atual:', { ...item });
+      
+      // Atualiza o item diretamente no array (imutabilidade)
+      const updatedItems = [...currentOrder.items];
+      updatedItems[itemIndex] = { 
+        ...item, 
+        quantity: item.quantity + 1 
+      };
+      
+      // Recalcula o total do pedido com validação
+      const newTotal = updatedItems.reduce((sum, currentItem) => {
+        if (typeof currentItem.quantity === 'number' && typeof currentItem.unitPrice === 'number') {
+          return sum + (currentItem.unitPrice * currentItem.quantity);
+        }
+        return sum;
+      }, 0);
+      
+      // Atualiza o pedido com segurança
+      const updatedOrder = { 
+        ...currentOrder, 
+        items: updatedItems,
+        total: newTotal
+      };
+      
+      console.log('[POS DEBUG] Pedido atualizado:', { 
+        oldTotal: currentOrder.total, 
+        newTotal, 
+        itemsCount: updatedItems.length 
+      });
+      
+      // Atualiza localmente primeiro
+      setActiveOrder(updatedOrder.id);
+      
+      // Atualiza no store através dos activeOrders
+      const state = useStore.getState();
+      if (state && state.activeOrders) {
+        const updatedActiveOrders = state.activeOrders.map(order => 
+          order.id === currentOrder.id ? updatedOrder : order
+        );
+        useStore.setState({ activeOrders: updatedActiveOrders });
+      }
+      
+    } catch (error) {
+      console.error('[POS ERROR] Erro ao aumentar quantidade:', error);
+      addNotification('error', 'Erro ao atualizar quantidade');
+    }
+  };
+
+  const handleDecreaseQuantity = (itemIndex: number) => {
+    if (!currentOrder || !currentOrder.items[itemIndex]) return;
+    const item = currentOrder.items[itemIndex];
+    if (item.quantity <= 1) return;
+    
+    try {
+      // Atualiza o item diretamente no array
+      const updatedItems = [...currentOrder.items];
+      updatedItems[itemIndex] = { ...item, quantity: item.quantity - 1 };
+      
+      // Recalcula o total do pedido
+      const newTotal = updatedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+      
+      // Atualiza o pedido com segurança
+      const updatedOrder = { 
+        ...currentOrder, 
+        items: updatedItems,
+        total: newTotal
+      };
+      
+      // Atualiza localmente primeiro
+      setActiveOrder(updatedOrder.id);
+      
+      // Atualiza no store através dos activeOrders
+      const { activeOrders } = useStore.getState();
+      const updatedActiveOrders = activeOrders.map(order => 
+        order.id === currentOrder.id ? updatedOrder : order
+      );
+      useStore.setState({ activeOrders: updatedActiveOrders });
+      
+    } catch (error) {
+      console.error('Erro ao diminuir quantidade:', error);
+    }
+  };
+  
+  const addSubAccount = () => {
+    if (!activeTableId) return;
+    
+    // Criar subconta com itens atuais
+    const subAccount = {
+      id: `sub-${Date.now()}`,
+      name: `Subconta ${subAccounts.length + 1}`,
+      items: [...(currentOrder?.items || [])],
+      total: currentOrder?.total || 0,
+      createdAt: new Date()
+    };
+    
+    setSubAccounts([...subAccounts, subAccount]);
+    // Limpar pedido atual
+    setActiveOrder(null);
+    addNotification('success', 'Subconta criada com sucesso');
+  };
+
+  const removeSubAccount = (id: string) => {
+    setSubAccounts(subAccounts.filter(sa => sa.id !== id));
+    addNotification('success', 'Subconta removida');
+  };
+
+  const transferTable = (sourceTableId: number, targetTableId: number) => {
+    try {
+      console.log(`[POS] Transferindo mesa ${sourceTableId} para ${targetTableId}`);
+      
+      const state = useStore.getState();
+      
+      // Encontrar todos os pedidos da mesa de origem
+      const sourceOrders = state.activeOrders.filter(order => order.tableId === sourceTableId);
+      
+      if (sourceOrders.length === 0) {
+        addNotification('error', 'Não há pedidos para transferir nesta mesa');
+        return;
+      }
+      
+      // Atualizar todos os pedidos para a nova mesa
+      const updatedOrders = state.activeOrders.map(order => {
+        if (order.tableId === sourceTableId) {
+          return {
+            ...order,
+            tableId: targetTableId,
+            timestamp: new Date() // Atualizar timestamp
+          };
+        }
+        return order;
+      });
+      
+      // Atualizar o store
+      useStore.setState({ activeOrders: updatedOrders });
+      
+      // Limpar seleções atuais
+      setActiveTable(null);
+      setActiveOrder(null);
+      
+      addNotification('success', `Mesa ${sourceTableId} transferida para ${targetTableId} com ${sourceOrders.length} pedido(s)`);
+      
+    } catch (error) {
+      console.error('[POS ERROR] Erro ao transferir mesa:', error);
+      addNotification('error', 'Erro ao transferir mesa');
+    }
+  };
+  
+  // Estados para subcontas
+  const [subAccounts, setSubAccounts] = useState<any[]>([]);
+  
   const [isCashOpen, setIsCashOpen] = useState(false);
   const [cashOpeningAmount, setCashOpeningAmount] = useState(0);
   const [isCashOpeningModalOpen, setIsCashOpeningModalOpen] = useState(false);
@@ -91,30 +287,22 @@ const POS = () => {
   
   const currentOrder = activeOrders.find(o => o.id === activeOrderId);
   
-  // LOG DE DEBUG PARA PRODUTOS NO POS
-  console.log("[POS] Produtos carregados:", menu.length);
-  console.log("[POS] Categorias disponíveis:", categories.length);
+  // LOG DE DEBUG PARA PRODUTOS NO POS - REMOVIDO
+  useEffect(() => {
+    // Sem logs para evitar erros
+  }, [menu.length, categories.length]);
   
   // VALIDAÇÃO DOS LOGS - DEBUG DO FILTRO
   const filteredByCategory = menu.filter(d => {
-    const matchesCategory = selectedCategoryId === 'TODOS' || d.category_id === selectedCategoryId;
+    const matchesCategory = selectedCategoryId === 'TODOS' || d.categoryId === selectedCategoryId;
     return matchesCategory;
   });
-  const filteredBySearch = filteredByCategory.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredBySearch = filteredByCategory.filter(d => 
+    typeof d.name === 'string' && d.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
-  console.log("[FILTRO] Categoria:", selectedCategoryId, "Produtos encontrados:", filteredBySearch.length);
-  
-  // LOG DE DEPURAÇÃO PARA IMAGENS
-  if (menu.length > 0) {
-    console.log("[DEBUG] Dados do Produto 1:", menu[0]);
-    console.log("[POS] URL da imagem do primeiro produto:", menu[0]?.image);
-    console.log("[POS] Estrutura da imagem:", {
-      hasImage: !!menu[0]?.image,
-      imageType: typeof menu[0]?.image,
-      imageLength: menu[0]?.image?.length,
-      allKeys: Object.keys(menu[0] || {})
-    });
-  }
+  // LOG DE DEPURAÇÃO PARA IMAGENS - REMOVIDO
+  // Sem logs para evitar erros
   
   // Função de impressão direta - SEM CONFIGURAÇÃO
   const handleDirectPrint = (order: any, customer?: any) => {
@@ -154,7 +342,7 @@ const POS = () => {
     const target = typeof targetTableId === 'number' ? targetTableId : (activeTableId || 0);
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}#/customer-display/${target}`;
-    window.open(url, 'VeredaCustomerDisplay', 'width=1200,height=800');
+    window.open(url, 'RESTIACustomerDisplay', 'width=1200,height=800');
     addNotification('info', `Monitor do Cliente para Mesa ${target} ativo.`);
   };
 
@@ -193,7 +381,7 @@ const POS = () => {
       console.log('[FECHO] Agrupamento por método:', groupedByPayment);
 
       // Formatar dados para impressão
-      const formattedOrders = todayOrders.map(order => ({
+      const formattedOrders = (todayOrders || []).map(order => ({
         id: order.id,
         tableId: String(order.tableId || ''),
         total: parseFloat(order.total) || 0,
@@ -225,10 +413,48 @@ const POS = () => {
   };
 
   const handleAddSubAccount = () => {
-    if (!activeTableId || !newSubAccountName.trim()) return;
-    addSubAccount(activeTableId, newSubAccountName.trim());
-    setNewSubAccountName('');
-    setIsSubaccountModalOpen(false);
+    if (!activeTableId || !newSubAccountName.trim()) {
+      addNotification('error', 'Nome da subconta é obrigatório');
+      return;
+    }
+    
+    try {
+      console.log('[POS] Criando subconta:', newSubAccountName);
+      
+      // Criar nova subconta com itens atuais
+      const newSubAccount = {
+        id: `sub-${Date.now()}`,
+        tableId: activeTableId,
+        subAccountName: newSubAccountName.trim(),
+        items: currentOrder ? [...currentOrder.items] : [],
+        total: currentOrder ? currentOrder.total : 0,
+        status: 'open' as const,
+        type: 'subaccount' as const,
+        timestamp: new Date(),
+        taxTotal: currentOrder ? currentOrder.taxTotal : 0,
+        profit: currentOrder ? currentOrder.profit : 0
+      };
+      
+      // Adicionar ao store com type assertion para contornar erro temporariamente
+      const state = useStore.getState();
+      const updatedActiveOrders = [...state.activeOrders, newSubAccount as any];
+      useStore.setState({ activeOrders: updatedActiveOrders });
+      
+      // Limpar o pedido atual se tiver itens
+      if (currentOrder && currentOrder.items.length > 0) {
+        setActiveOrder(null);
+      }
+      
+      // Limpar formulário
+      setNewSubAccountName('');
+      setIsSubaccountModalOpen(false);
+      
+      addNotification('success', `Subconta "${newSubAccountName}" criada com sucesso`);
+      
+    } catch (error) {
+      console.error('[POS ERROR] Erro ao criar subconta:', error);
+      addNotification('error', 'Erro ao criar subconta');
+    }
   };
 
   // 🛡️ FUNÇÕES BLINDADAS DE GESTÃO DE SUBCONTAS
@@ -341,7 +567,7 @@ const POS = () => {
             return;
           }
           
-          const itemsToInsert = currentOrder.items.map(item => {
+          const itemsToInsert = (currentOrder.items || []).map(item => {
             // VERIFICAÇÃO: item.dish.id é válido?
             if (!item.dish.id) {
               console.error('[POS] ERRO: item.dish.id é inválido:', item);
@@ -415,7 +641,7 @@ const POS = () => {
         const orderToPrint = state.activeOrders.find(o => o.id === currentOrder.id) || currentOrder;
         const customerToPrint = state.customers.find(c => c.id === orderToPrint.customerId);
         
-        // Impressão direta
+        // Impressão direta apenas se não estiver imprimindo
         if (typeof handleDirectPrint === 'function') {
           handleDirectPrint(orderToPrint, customerToPrint);
         }
@@ -430,7 +656,7 @@ const POS = () => {
         console.error('[POS] Erro na impressão:', error);
         addNotification('error', 'Erro na impressão');
       }
-    }, 500);
+    }, 1000); // Aumentado para 1 segundo para garantir que o estado foi salvo
   };
 
   const formatKz = (val: number) => new Intl.NumberFormat('pt-AO', { 
@@ -439,6 +665,29 @@ const POS = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background font-sans select-none">
+      {/* Inicializador do POS - Garante que os dados sejam carregados */}
+      <POSInitializer />
+      
+      {/* Controles de Zoom do POS - Fixos no topo */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 bg-black/50 backdrop-blur-sm rounded-2xl p-2 border border-white/10">
+        <button 
+          onClick={handlePosZoomIn}
+          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
+          title="Aumentar zoom do POS"
+        >
+          <ZoomIn size={20} />
+        </button>
+        <button 
+          onClick={handlePosZoomOut}
+          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
+          title="Diminuir zoom do POS"
+        >
+          <ZoomOut size={20} />
+        </button>
+        <div className="text-center text-white text-xs font-bold bg-white/10 rounded-lg px-2 py-1">
+          {Math.round(posZoomLevel * 100)}%
+        </div>
+      </div>
       
       {/* Botão de Toggle da Sidebar - SEMPRE VISÍVEL */}
       <button 
@@ -451,26 +700,26 @@ const POS = () => {
       </button>
       
       {/* Sidebar Categorias */}
-      <div className={`${isSidebarCollapsed ? 'w-0' : 'w-24'} bg-slate-950 border-r border-white/5 flex flex-col items-center py-10 gap-8 z-40 relative transition-all duration-300`}>
-         <div className="flex-1 flex flex-col items-center gap-6 overflow-y-auto no-scrollbar w-full">
+      <div className={`${isSidebarCollapsed ? 'w-0' : 'w-12 sm:w-14 md:w-16 lg:w-12'} bg-slate-950 border-r border-white/5 flex flex-col items-center py-1 sm:py-2 md:py-3 gap-1 sm:gap-2 md:gap-3 z-40 relative transition-all duration-300`}>
+         <div className="flex-1 flex flex-col items-center gap-3 sm:gap-4 md:gap-6 overflow-y-auto no-scrollbar w-full py-1 sm:py-2 md:py-3">
            <button 
               onClick={() => setSelectedCategoryId('TODOS')} 
-              className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center transition-all ${selectedCategoryId === 'TODOS' ? 'bg-primary text-black shadow-glow scale-105' : 'bg-white/5 text-slate-500 hover:text-slate-300'}`}
+              className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 rounded-xl sm:rounded-[1.5rem] md:rounded-2xl flex items-center justify-center transition-all ${selectedCategoryId === 'TODOS' ? 'bg-primary text-black shadow-glow scale-105' : 'bg-white/5 text-slate-500 hover:text-slate-300'}`}
               title="Ver todos os produtos"
               aria-label="Ver todos os produtos"
            >
-              <Grid3X3 size={24} />
+              <Grid3X3 size={window.innerWidth < 640 ? 18 : window.innerWidth < 768 ? 20 : 24} />
            </button>
            {categories.map(cat => (
              <button 
                key={cat.id} 
                onClick={() => setSelectedCategoryId(cat.id)} 
-               className={`w-16 h-16 shrink-0 rounded-2xl flex flex-col items-center justify-center transition-all group ${selectedCategoryId === cat.id ? 'bg-primary text-black shadow-glow scale-105' : 'bg-white/5 text-slate-500 hover:text-slate-300'}`}
+               className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 rounded-xl sm:rounded-[1.5rem] md:rounded-2xl flex flex-col items-center justify-center transition-all group ${selectedCategoryId === cat.id ? 'bg-primary text-black shadow-glow scale-105' : 'bg-white/5 text-slate-500 hover:text-slate-300'}`}
                title={`Categoria: ${cat.name}`}
                aria-label={`Categoria: ${cat.name}`}
              >
-                <Tag size={20} />
-                <span className="text-[7px] font-black uppercase mt-1 opacity-60 truncate w-full text-center px-1">{cat.name}</span>
+                <Tag size={window.innerWidth < 640 ? 16 : window.innerWidth < 768 ? 18 : 20} />
+                <span className="text-[6px] sm:text-[6px] md:text-[7px] font-black uppercase mt-1 opacity-60 truncate w-full text-center px-1">{cat.name}</span>
              </button>
            ))}
          </div>
@@ -510,13 +759,13 @@ const POS = () => {
               title="Fechar Caixa"
             >
               <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-              <span className="text-[6px] font-black uppercase tracking-tighter">FECHO</span>
+              <span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[12px] font-black text-white truncate block leading-tight">FECHO</span>
             </button>
          </div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-24 bg-slate-900/40 backdrop-blur-md border-b border-white/5 flex items-center px-10 justify-between shrink-0">
+        <header className="h-20 sm:h-24 bg-slate-900/40 backdrop-blur-md border-b border-white/5 flex items-center px-6 sm:px-10 justify-between shrink-0">
            <div className="flex items-center gap-6">
               <button onClick={() => { setActiveTable(null); setActiveOrder(null); }} className="group flex items-center gap-3 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all">
                 <Layout size={20} /> 
@@ -619,22 +868,22 @@ const POS = () => {
            </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-12 no-scrollbar bg-slate-900/10">
-           <div className="flex items-center justify-between mb-10">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6 no-scrollbar bg-slate-900/10" style={{ transform: `scale(${posZoomLevel})`, transformOrigin: 'top center' }}>
+           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 lg:mb-10 gap-4">
              <div>
-               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Explorar Itens</p>
-               <h3 className="text-xl font-black text-white tracking-tight mt-1">Selecione produtos para adicionar ao pedido</h3>
+               <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Explorar Itens</p>
+               <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-white tracking-tight mt-1">Selecione produtos para adicionar ao pedido</h3>
              </div>
              <div className="relative w-full max-w-xs md:max-w-sm lg:max-w-md group">
                <div className="absolute inset-0 rounded-2xl bg-primary/20 opacity-0 group-hover:opacity-40 transition-opacity pointer-events-none"></div>
-               <div className="relative flex items-center gap-3 px-4 py-2.5 bg-white/[0.06] border border-primary/40 rounded-2xl shadow-glow">
-                 <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-black shrink-0">
-                   <Search size={16} />
+               <div className="relative flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/[0.06] border border-primary/40 rounded-xl sm:rounded-2xl shadow-glow">
+                 <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-primary text-black shrink-0">
+                   <Search size={window.innerWidth < 640 ? 14 : 16} />
                  </div>
                  <input 
                    type="text" 
                    placeholder="Pesquisar item por nome…" 
-                   className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-400" 
+                   className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder:text-slate-400" 
                    value={searchTerm} 
                    onChange={e => setSearchTerm(e.target.value)} 
                  />
@@ -642,32 +891,32 @@ const POS = () => {
              </div>
            </div>
            {!activeTableId ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 md:gap-6 animate-in fade-in zoom-in duration-700">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 animate-in fade-in zoom-in duration-700">
                  {tables.map((table) => {
                     const isOccupied = activeOrders.some(o => o.tableId === table.id && o.status === 'open');
                     return (
                       <button 
                         key={table.id} 
                         onClick={() => handleTableClick(table)}
-                        className={`aspect-square rounded-[2rem] border-2 flex flex-col items-center justify-center gap-3 transition-all active:scale-90 relative group ${!isOccupied ? 'border-white/5 bg-white/[0.02] hover:border-primary/50 hover:bg-white/[0.05]' : 'border-primary bg-primary/10 shadow-glow scale-105'}`}
+                        className={`h-20 w-full rounded-md border-2 flex flex-col items-center justify-center p-2 transition-all active:scale-90 relative group ${!isOccupied ? 'border-white/5 bg-white/[0.02] hover:border-primary/50 hover:bg-white/[0.05]' : 'border-primary bg-primary/10 shadow-glow scale-105'}`}
                       >
-                         <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${!isOccupied ? 'text-slate-600' : 'text-primary/60'}`}>{table.name}</span>
-                         <span className={`text-5xl font-black italic tracking-tighter leading-none ${!isOccupied ? 'text-white' : 'text-primary'}`}>{table.id}</span>
+                         <span className={`text-[6px] font-black uppercase tracking-[0.1em] ${!isOccupied ? 'text-slate-600' : 'text-primary/60'}`}>{table.name}</span>
+                         <span className={`text-lg font-black italic tracking-tighter leading-none ${!isOccupied ? 'text-white' : 'text-primary'}`}>{table.id}</span>
                          
                          {isOccupied && (
-                           <div className="absolute -top-3 -right-3 flex gap-1">
-                             <div className="w-8 h-8 bg-primary text-black rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                               <Users size={14} />
+                           <div className="absolute -top-1 -right-1 flex gap-0.5">
+                             <div className="w-3 h-3 bg-primary text-black rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                               <Users size={8} />
                              </div>
                              <button
                                onClick={(e) => {
                                  e.stopPropagation();
                                  closeTable(table.id);
                                }}
-                               className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-all scale-0 group-hover:scale-100"
+                               className="w-3 h-3 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-all scale-0 group-hover:scale-100"
                                title="Fechar Mesa"
                              >
-                               <X size={14} />
+                               <X size={8} />
                              </button>
                            </div>
                          )}
@@ -676,12 +925,12 @@ const POS = () => {
                  })}
               </div>
            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 md:gap-4 lg:gap-6 animate-in fade-in zoom-in duration-700">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 md:gap-4 lg:gap-6 animate-in fade-in zoom-in duration-700 overflow-y-auto max-h-[calc(100vh-200px)] p-2 sm:p-3 md:p-4">
                  {filteredBySearch.map((dish) => (
                     <button 
                       key={dish.id} 
                       onClick={() => handleAddToOrder(dish)} 
-                      className={`group bg-white/[0.03] rounded-[2.5rem] border-2 overflow-hidden flex flex-col transition-all active:scale-95 relative hover:shadow-2xl ${lastAddedItemId === dish.id ? 'border-primary shadow-glow scale-105' : 'border-white/5 hover:border-primary/30 hover:bg-white/[0.06]'}`}
+                      className={`group bg-white/[0.03] rounded-xl sm:rounded-[1.5rem] lg:rounded-[2.5rem] border-2 overflow-hidden flex flex-col transition-all active:scale-95 relative hover:shadow-2xl ${lastAddedItemId === dish.id ? 'border-primary shadow-glow scale-105' : 'border-white/5 hover:border-primary/30 hover:bg-white/[0.06]'}`}
                     >
                        <div className="aspect-[4/4] w-full overflow-hidden relative">
                           <LazyImage src={dish.image} alt={dish.name} containerClassName="w-full h-full" className="group-hover:scale-110 transition-all duration-1000 ease-out" />
@@ -689,18 +938,18 @@ const POS = () => {
                           
                           {lastAddedItemId === dish.id && (
                             <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[2px] animate-in fade-in zoom-in duration-300">
-                               <div className="bg-primary text-black p-4 rounded-full shadow-2xl scale-110">
-                                  <Plus size={32} strokeWidth={4} />
+                               <div className="bg-primary text-black p-2 sm:p-3 lg:p-4 rounded-full shadow-2xl scale-110">
+                                  <Plus size={window.innerWidth < 640 ? 20 : window.innerWidth < 768 ? 24 : 32} strokeWidth={4} />
                                </div>
                             </div>
                           )}
                           
-                          <div className="absolute bottom-6 left-8 right-8 text-left transform group-hover:translate-y-[-4px] transition-transform">
-                             <div className="flex items-center gap-2 mb-2">
-                               <div className="h-px w-8 bg-primary/50"></div>
-                               <p className="text-[12px] font-black text-primary uppercase tracking-widest">{formatKz(dish.price)}</p>
+                          <div className="absolute bottom-4 sm:bottom-5 lg:bottom-6 left-4 sm:left-6 lg:left-8 right-4 sm:right-6 lg:right-8 text-left transform group-hover:translate-y-[-2px] sm:group-hover:translate-y-[-4px] transition-transform">
+                             <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                               <div className="h-px w-4 sm:w-6 lg:w-8 bg-primary/50"></div>
+                               <p className="text-[10px] sm:text-[11px] lg:text-[12px] font-black text-primary uppercase tracking-widest">{formatKz(dish.price)}</p>
                              </div>
-                             <h4 className="text-white font-black text-lg truncate uppercase tracking-tighter leading-tight drop-shadow-lg">{dish.name}</h4>
+                             <h4 className="text-white font-black text-[10px] sm:text-[11px] md:text-[12px] lg:text-sm xl:text-base truncate uppercase tracking-tighter leading-tight drop-shadow-lg">{dish.name}</h4>
                           </div>
                        </div>
                     </button>
@@ -711,32 +960,32 @@ const POS = () => {
       </div>
 
       {/* Painel Lateral do Pedido */}
-      <div className={`w-[480px] border-l border-white/5 bg-slate-950 flex flex-col h-full transition-all duration-500 shadow-2xl z-50 ${!activeOrderId ? 'translate-x-full' : ''}`}>
+      <div className={`w-full max-w-[280px] sm:max-w-[320px] md:max-w-[350px] lg:max-w-[400px] border-l border-white/5 bg-slate-950 flex flex-col h-full transition-all duration-500 shadow-2xl z-50 ${!activeOrderId ? 'translate-x-full' : ''}`}>
          {activeOrderId && (
            <>
-             <div className="p-8 border-b border-white/5 bg-slate-900/20">
-                <div className="flex items-center gap-4 justify-between mb-8">
+             <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-b border-white/5 bg-slate-900/20">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 sm:justify-between mb-2 sm:mb-4 md:mb-6 lg:mb-8 gap-2 sm:gap-4">
                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-1">
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-glow"></div>
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter truncate">Pedido #{activeOrderId.slice(-4)}</h3>
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter truncate">Pedido #{(typeof activeOrderId === 'string' ? activeOrderId.slice(-4) : 'N/A')}</h3>
                       </div>
                       {selectedSubAccount && (
-                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">{selectedSubAccount.subAccountName}</p>
+                        <p className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-primary uppercase tracking-widest">{selectedSubAccount.subAccountName}</p>
                       )}
                    </div>
-                   <div className="flex gap-2">
+                   <div className="flex gap-1 sm:gap-2">
                      <button 
                        onClick={() => {
                          console.log('[POS] Imprimindo consulta...');
                          if (currentOrder) {
-                           printTableReview(currentOrder, settings, currentUser?.name || 'Operador');
+                           printTableReview(currentOrder, menu, settings);
                          }
                        }} 
-                       className="p-3 bg-white/5 text-slate-400 hover:text-primary rounded-xl border border-white/10 transition-all"
+                       className="p-2 sm:p-3 bg-white/5 text-slate-400 hover:text-primary rounded-lg sm:rounded-xl border border-white/10 transition-all"
                        title="Imprimir Consulta"
                      >
-                        <Printer size={20}/>
+                        <Printer size={window.innerWidth < 640 ? 16 : 20}/>
                      </button>
                      {/* Botão de fecho melhorado */}
                      {selectedSubAccount && selectedSubAccount.subAccountName !== 'Principal' ? (
@@ -793,31 +1042,33 @@ const POS = () => {
                 )}
              </div>
 
-             <div className="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar bg-slate-950/50">
+             <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6 space-y-1 sm:space-y-2 md:space-y-3 no-scrollbar bg-slate-950/50">
                 {currentOrder?.items.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-4 opacity-40">
-                    <ShoppingBasket size={48} strokeWidth={1} />
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Carrinho Vazio</p>
+                  <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2 sm:gap-3 md:gap-4 opacity-40">
+                    <ShoppingBasket size={window.innerWidth < 640 ? 24 : window.innerWidth < 768 ? 32 : 48} strokeWidth={1} />
+                    <p className="text-[7px] sm:text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">Carrinho Vazio</p>
                   </div>
                 ) : (
                   currentOrder?.items.map((item, idx) => {
-                    const dish = menu.find(d => d.id === item.dishId);
+                    const dish = menu.find(d => d.id === item.dish?.id);
                     return (
-                      <div key={idx} className="flex gap-4 items-center p-4 bg-white/[0.03] rounded-[1.5rem] border border-white/5 group hover:border-primary/20 transition-all animate-in fade-in slide-in-from-right-4 duration-300">
-                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 shrink-0">
-                           <LazyImage src={dish?.image || ''} alt={dish?.name || ''} className="w-full h-full object-cover" />
+                      <div key={idx} className="flex flex-col gap-2 p-2 bg-white/[0.03] rounded-lg border border-white/5 group hover:border-primary/20 transition-all animate-in fade-in slide-in-from-right-4 duration-300">
+                         {/* Nome do produto no topo */}
+                         <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-white text-[12px] uppercase tracking-tight whitespace-normal break-words flex-1">{dish?.name || `Produto ${idx + 1}`}</h4>
+                            <span className="text-[10px] font-mono font-bold text-primary/80 ml-2">{formatKz(item.unitPrice * item.quantity)}</span>
                          </div>
-                         <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-white text-sm uppercase truncate tracking-tight">{dish?.name}</h4>
-                            <p className="text-[11px] font-mono font-bold text-primary/80 mt-0.5">{formatKz(item.unitPrice * item.quantity)}</p>
-                         </div>
-                         <div className="flex items-center gap-3 bg-black/40 rounded-xl p-1 border border-white/5">
-                            <button onClick={() => removeFromOrder(currentOrder?.id || '', idx)} className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/30 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
-                            <button onClick={() => addToOrder(activeTableId, dish!, -1)} className="w-8 h-8 rounded-lg bg-white/5 text-slate-500 hover:text-white transition-colors">-</button>
-                            <span className="w-6 text-center font-black text-white text-xs">{item.quantity}</span>
-                            <button onClick={() => handleAddToOrder(dish!, 1)} className="w-8 h-8 rounded-lg bg-primary text-black shadow-glow transition-transform active:scale-90">+</button>
+                         
+                         {/* Botões de ação embaixo */}
+                         <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                               <button onClick={() => removeFromOrder(currentOrder?.id || '', idx)} className="w-6 h-6 rounded bg-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/30 transition-colors">
+                                 <Trash2 size={12} />
+                               </button>
+                               <button onClick={() => handleDecreaseQuantity(idx)} className="w-6 h-6 rounded bg-white/5 text-slate-500 hover:text-white transition-colors">-</button>
+                               <span className="w-6 text-center font-black text-white text-[10px]">{item.quantity}</span>
+                               <button onClick={() => handleIncreaseQuantity(idx)} className="w-6 h-6 rounded bg-primary text-black transition-transform active:scale-90">+</button>
+                            </div>
                          </div>
                       </div>
                     );
@@ -825,26 +1076,26 @@ const POS = () => {
                 )}
              </div>
 
-             <div className="p-8 bg-slate-900/40 backdrop-blur-md border-t border-white/5">
-                <div className="space-y-3 mb-8">
+             <div className="p-2 sm:p-3 md:p-4 lg:p-6 bg-slate-900/40 backdrop-blur-md border-t border-white/5">
+                <div className="space-y-1 sm:space-y-2 md:space-y-3 mb-2 sm:mb-4 md:mb-6 lg:mb-8">
                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[9px] font-black uppercase tracking-widest">Subtotal</span>
-                      <span className="text-sm font-bold font-mono">{formatKz(currentOrder?.total || 0)}</span>
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">Subtotal</span>
+                      <span className="text-xs sm:text-sm font-bold font-mono">{formatKz(currentOrder?.total || 0)}</span>
                    </div>
                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[9px] font-black uppercase tracking-widest">Taxas (Incluso)</span>
-                      <span className="text-sm font-bold font-mono">{formatKz(0)}</span>
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">Taxas (Incluso)</span>
+                      <span className="text-xs sm:text-sm font-bold font-mono">{formatKz(0)}</span>
                    </div>
-                   <div className="pt-3 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Total</span>
-                      <h3 className="text-4xl font-mono font-bold text-primary text-glow">{formatKz(currentOrder?.total || 0)}</h3>
+                   <div className="pt-2 sm:pt-3 border-t border-white/5 flex justify-between items-center">
+                      <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-[0.3em]">Total</span>
+                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-primary text-glow">{formatKz(currentOrder?.total || 0)}</h3>
                    </div>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button 
                     onClick={() => setActiveOrder(null)} 
-                    className="flex-1 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                    className="flex-1 py-3 sm:py-4 md:py-5 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                   >
                     Suspender
                   </button>
@@ -966,7 +1217,7 @@ const POS = () => {
                                 console.log(`[POS] Solicitando reimpressão do pedido ${order.invoiceNumber}`);
                                 handleDirectPrint(order, customers.find(c => c.id === order.customerId));
                             }} 
-                            className="p-4 bg-white/5 rounded-xl text-slate-400 hover:text-primary transition-all border border-white/5" 
+                            className="min-h-[44px] min-w-[44px] p-4 bg-white/5 rounded-xl text-slate-400 hover:text-primary transition-all border border-white/5" 
                             title="Reimprimir"
                         >
                             <Printer size={20}/>
@@ -1019,8 +1270,8 @@ const POS = () => {
                      {paymentConfigs.filter(c => c.isActive).map(method => (
                        <button 
                          key={method.id} 
-                         onClick={() => handleCheckoutFinal(method.type)}
-                         className="p-8 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center gap-4 hover:border-primary hover:bg-primary/5 transition-all transform active:scale-95"
+                         onClick={() => handleCheckoutFinal(method)}
+                         className="min-h-[44px] min-w-[44px] p-4 sm:p-6 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center gap-2 sm:gap-4 hover:border-primary hover:bg-primary/5 transition-all transform active:scale-95"
                        >
                           <Banknote size={32} className="text-slate-400" />
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{method.name}</span>
@@ -1030,7 +1281,7 @@ const POS = () => {
                      {!paymentConfigs.some(c => c.type === 'PAGAR_DEPOIS' && c.isActive) && (
                        <button 
                          onClick={() => handleCheckoutFinal('PAGAR_DEPOIS')}
-                         className="p-8 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center gap-4 hover:border-purple-500 hover:bg-purple-500/5 transition-all transform active:scale-95"
+                         className="min-h-[44px] min-w-[44px] p-4 sm:p-6 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center gap-2 sm:gap-4 hover:border-purple-500 hover:bg-purple-500/5 transition-all transform active:scale-95"
                        >
                           <User size={32} className="text-slate-400" />
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Pagar Depois</span>
@@ -1112,10 +1363,10 @@ const POS = () => {
             if (currentOrder) {
               // Usar store para finalizar (SQLite-first)
               await checkoutTable(currentOrder.id, paymentMethod, selectedCustomerId);
+              
+              // Chamar função de impressão apenas uma vez
+              await handleCheckoutFinal(paymentMethod as PaymentMethod, selectedCustomerId);
             }
-            
-            // Chamar função de impressão existente
-            await handleCheckoutFinal(paymentMethod as PaymentMethod, selectedCustomerId);
           }
           
         } catch (error) {
@@ -1131,8 +1382,28 @@ const POS = () => {
     />
 
   </div>
-);
-
+  );
+  
+  } catch (error) {
+    console.error('[POS FATAL] Erro ao renderizar componente:', error);
+    console.log('[POS DEBUG] Tipo do erro:', typeof error);
+    console.log('[POS DEBUG] Mensagem:', error instanceof Error ? error.message : String(error));
+    console.log('[POS DEBUG] Stack:', error instanceof Error ? error.stack : 'Sem stack');
+    
+    // Mostrar alert com informações detalhadas
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    alert(`ERRO NO POS: ${errorMessage}`);
+    
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-950">
+        <div className="text-center">
+          <h1 className="text-red-500 text-2xl font-bold mb-4">Erro no POS</h1>
+          <p className="text-white mb-2">Erro: {errorMessage}</p>
+          <p className="text-gray-400 text-sm">Verifique o console para detalhes</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default POS;

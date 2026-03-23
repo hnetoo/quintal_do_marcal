@@ -121,12 +121,14 @@ export interface Category {
   imageUrl?: string;
 }
 
+export type TaxRegime = "GERAL" | "SIMPLIFICADO" | "EXCLUSAO";
+
 export interface SystemSettings {
   restaurantName: string;
   appLogoUrl: string;
   currency: string;
   taxRate: number;
-  taxRegime: "GERAL";
+  taxRegime: TaxRegime;
   phone: string;
   address: string;
   nif: string;

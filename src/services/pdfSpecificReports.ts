@@ -1120,7 +1120,7 @@ export const generateProductSalesReport = async (startDate?: string, endDate?: s
     
     // Tabela de vendas por artigo
     const tableData = items.map(item => [
-      item.product_name,
+      item.product_name || 'Item',
       String(item.quantity),
       formatAKZ(item.unit_price),
       formatAKZ(item.subtotal)

@@ -15,11 +15,22 @@ const LazyImage: React.FC<LazyImageProps> = ({ src, alt, className, containerCla
 
   // VERIFICAÇÃO DO CAMINHO (URL) E CONSTRUÇÃO DE URL COMPLETA
   const getImageUrl = (imageSrc?: string): string | undefined => {
-    if (!imageSrc) return undefined;
+    if (!imageSrc || typeof imageSrc !== 'string') return undefined;
     
     // Se for URL absoluta (começa com http), retorna como está
     if (imageSrc.startsWith('http')) {
       return imageSrc;
+    }
+    
+    // Se for caminho relativo começando com /assets/, usar asset:// para Tauri
+    if (imageSrc.startsWith('/assets/') || imageSrc.startsWith('assets/')) {
+      // No Tauri, usar protocolo asset para imagens locais
+      if (window.__TAURI__) {
+        const assetPath = imageSrc.startsWith('/') ? imageSrc.slice(1) : imageSrc;
+        return `asset://${assetPath}`;
+      }
+      // No desenvolvimento normal, usar caminho relativo
+      return imageSrc.startsWith('/') ? imageSrc : `/${imageSrc}`;
     }
     
     // Se for caminho relativo, concatena com URL base do Supabase Storage

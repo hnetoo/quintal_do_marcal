@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { createClient } from '@supabase/supabase-js';
 import POS from './views/POS';
@@ -12,7 +12,9 @@ import AGTControl from './views/AGTControl';
 import ProfitCenter from './views/ProfitCenter';
 import Analytics from './views/Analytics';
 import SetupModal from './components/SetupModal';
+import DebugPanel from './components/DebugPanel';
 import { Loader2, Database, AlertTriangle } from 'lucide-react';
+import { showSystemDialog } from './lib/systemCheck';
 
 const App = () => {
   const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
@@ -21,6 +23,8 @@ const App = () => {
   const [supabaseClient, setSupabaseClient] = useState<any>(null);
 
   useEffect(() => {
+    // Verificar requisitos do sistema primeiro
+    showSystemDialog();
     checkConfiguration();
   }, []);
 
@@ -326,21 +330,24 @@ const App = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/pos" replace />} />
-        <Route path="/pos" element={<POS />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/owner" element={<Navigate to="/owner/dashboard" replace />} />
-        <Route path="/owner/login" element={<OwnerLogin />} />
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/finance" element={<Finance />} />
-        <Route path="/agt" element={<AGTControl />} />
-        <Route path="/profit-center" element={<ProfitCenter />} />
-        <Route path="/analytics" element={<Analytics />} />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/pos" replace />} />
+          <Route path="/pos" element={<POS />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/owner" element={<Navigate to="/owner/dashboard" replace />} />
+          <Route path="/owner/login" element={<OwnerLogin />} />
+          <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/agt" element={<AGTControl />} />
+          <Route path="/profit-center" element={<ProfitCenter />} />
+          <Route path="/analytics" element={<Analytics />} />
+        </Routes>
+      </Router>
+      <DebugPanel />
+    </>
   );
 };
 

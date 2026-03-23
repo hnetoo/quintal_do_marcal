@@ -1,6 +1,6 @@
 {
   "productName": "Rest-IA",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "identifier": "ao.vereda.gestao.restaurante",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,12 +11,13 @@
   "app": {
     "windows": [
       {
-        "title": "Rest-IA v1.0.1",
+        "title": "Rest-IA v1.1.1 [DEBUG]",
         "label": "main",
-        "width": 1920,
-        "height": 1080,
-        "minWidth": 1024,
-        "minHeight": 768,
+        "url": "index.html",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
@@ -25,16 +26,25 @@
         "minimizable": true,
         "center": true,
         "alwaysOnTop": false,
-        "skipTaskbar": false
+        "devtools": true,
+        "theme": "Light",
+        "hiddenTitle": false,
+        "titleBarStyle": "Visible"
       }
     ],
     "security": {
-      "csp": null
-    }
+      "csp": "default-src 'self' tauri://localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: tauri://localhost https://*.supabase.co https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com;",
+      "dangerousDisableAssetCspModification": true,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**", "$RESOURCE/**", "$APP/**", "../dist/**"]
+      }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
-    "targets": ["msi"],
+    "targets": ["msi", "nsis"],
     "icon": [
       "icons/icon.ico",
       "icons/icon.png",
@@ -43,13 +53,16 @@
       "icons/128x128@2x.png",
       "icons/icon.icns"
     ],
-    "publisher": "Vereda Systems Angola",
+    "publisher": "REST IA Systems Angola",
     "category": "Business",
     "shortDescription": "Sistema POS para Gestão de Restaurante",
-    "longDescription": "Tasca do Vereda POS é um sistema completo de gestão de restaurantes com interface responsiva, controle de estoque, gestão de funcionários e relatórios financeiros.",
+    "longDescription": "REST IA POS é um sistema completo de gestão de restaurantes com interface responsiva, controle de estoque, gestão de funcionários e relatórios financeiros.",
     "windows": {
       "wix": {
         "language": "pt-PT"
+      },
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
       }
     }
   },
@@ -57,22 +70,24 @@
     "sql": {
       "preload": ["sqlite:tasca_vereda.db"]
     },
-    "notification": {
-      "all": true
-    },
+    "notification": {},
     "shell": {
       "open": true
     },
     "fs": {
-      "all": true,
-      "readFile": true,
-      "writeFile": true,
-      "readDir": true,
-      "copyFile": true,
-      "createDir": true,
-      "removeDir": true,
-      "removeFile": true,
-      "renameFile": true
+      "requireLiteralLeadingDot": true
+    },
+    "http": {
+      "scope": [
+        "https://tboiuiwlqfzcvakxrsmj.supabase.co/**",
+        "https://api.supabase.co/**",
+        "https://*.supabase.co/**",
+        "https://images.unsplash.com/**",
+        "https://*.unsplash.com/**",
+        "https://plus.unsplash.com/**",
+        "wss://tboiuiwlqfzcvakxrsmj.supabase.co/**",
+        "ws://tboiuiwlqfzcvakxrsmj.supabase.co/**"
+      ]
     }
   }
 }

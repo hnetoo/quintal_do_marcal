@@ -14,11 +14,12 @@ const getThermalCommands = () => {
   return `
     <script>
       window.onload = function() {
-        // Enviar comandos genéricos para impressora térmica
+        // Configurar impressora térmica para 80mm
         const printCommands = document.createElement('div');
         printCommands.innerHTML = 
-          String.fromCharCode(27) + String.fromCharCode(112) + String.fromCharCode(0) + String.fromCharCode(60) + String.fromCharCode(255) + // Abrir gaveta (ESC p 0 < 255)
-          String.fromCharCode(29) + String.fromCharCode(86) + String.fromCharCode(0); // Corte total (ESC V 0)
+          String.fromCharCode(27) + String.fromCharCode(112) + String.fromCharCode(0) + String.fromCharCode(60) + String.fromCharCode(255) + // Abrir gaveta
+          String.fromCharCode(29) + String.fromCharCode(86) + String.fromCharCode(1) + // Corte total (80mm)
+          String.fromCharCode(27) + String.fromCharCode(64); // Inicializar impressora
         document.body.appendChild(printCommands);
         window.print();
       };
@@ -33,56 +34,49 @@ const thermalStyles = `
   }
   @media print {
     body { 
-      font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; 
+      font-family: 'Courier New', Courier, monospace; 
       width: 80mm; 
       min-height: 200mm;
       padding: 4mm; 
-      font-size: 11px; 
+      font-size: 10px; 
       color: #000; 
-      line-height: 1.4;
+      line-height: 1.2;
       background: #fff;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
       margin: 0;
       box-sizing: border-box;
     }
   }
   body { 
-    font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; 
+    font-family: 'Courier New', Courier, monospace; 
     width: 80mm; 
     padding: 4mm; 
-    font-size: 11px; 
+    font-size: 10px; 
     color: #000; 
-    line-height: 1.4;
+    line-height: 1.2;
     background: #fff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
     margin: 0;
     box-sizing: border-box;
   }
   .text-center { text-align: center; }
   .text-right { text-align: right; }
-  .bold { font-weight: 900; }
-  .divider { border-top: 1px dashed #000; margin: 10px 0; }
-  .header-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
-  .items-table { width: 100%; margin: 10px 0; border-collapse: collapse; }
-  .items-table td { padding: 4px 0; vertical-align: top; }
-  .qr-container { margin: 15px 0; display: flex; justify-content: center; }
+  .bold { font-weight: bold; }
+  .divider { border-top: 1px solid #000; margin: 8px 0; }
+  .header-title { font-size: 12px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }
+  .items-table { width: 100%; margin: 8px 0; border-collapse: collapse; }
+  .items-table td { padding: 2px 0; vertical-align: top; }
+  .qr-container { margin: 10px 0; display: flex; justify-content: center; }
   .hash-box { 
-    font-size: 9px; 
-    margin-top: 10px; 
-    word-break: break-all; 
+    font-size: 8px; 
+    margin-top: 8px; 
     text-align: center; 
-    line-height: 1.4; 
-    background: #f0f0f0; 
-    padding: 6px; 
+    line-height: 1.2; 
+    background: #f5f5f5; 
+    padding: 4px; 
     border: 1px solid #000;
   }
-  .tax-table { width: 100%; font-size: 9px; margin-top: 5px; border-collapse: collapse; }
+  .tax-table { width: 100%; font-size: 8px; margin-top: 5px; border-collapse: collapse; }
   .tax-table th { text-align: left; border-bottom: 1px solid #000; padding: 2px 0; }
-  .legal-footer { font-size: 8px; margin-top: 15px; border-top: 1px solid #000; padding-top: 8px; text-align: center; font-weight: bold; }
-  .non-fiscal { border: 2px solid #000; padding: 6px; margin: 10px 0; text-align: center; font-weight: 900; text-transform: uppercase; font-size: 12px; }
-  .customer-box { border: 1px solid #000; padding: 5px; margin: 5px 0; }
+  .customer-box { margin: 5px 0; }
 `;
 
 /**
@@ -90,6 +84,15 @@ const thermalStyles = `
  * Isso é mais robusto em ambientes Tauri/WebView do que window.open.
  */
 const executePrint = (html: string) => {
+  // Verificar se já está imprimindo usando flag global
+  if ((window as any).isPrinting) {
+    console.log('[PRINT] Impressão já em andamento, ignorando chamada duplicada');
+    return;
+  }
+
+  (window as any).isPrinting = true;
+  console.log('[PRINT] Iniciando impressão com lock global');
+  
   const frameId = 'print-frame';
   let printFrame = document.getElementById(frameId) as HTMLIFrameElement;
   
@@ -122,11 +125,25 @@ const executePrint = (html: string) => {
       doc.head.appendChild(styleElement);
     }
     
-    // Atraso garantido para renderização completa antes de disparar impressão
+    // Delay único para garantir renderização completa e evitar duplicação
     setTimeout(() => {
-      printFrame.contentWindow?.focus();
-      printFrame.contentWindow?.print();
-    }, 1000); // Aumentado para 1 segundo para garantir renderização
+      try {
+        printFrame.contentWindow?.focus();
+        printFrame.contentWindow?.print();
+        console.log('[PRINT] Impressão disparada com sucesso');
+      } catch (error) {
+        console.error('[PRINT] Erro ao disparar impressão:', error);
+      } finally {
+        // Liberar lock global após 1 segundo
+        setTimeout(() => {
+          (window as any).isPrinting = false;
+          console.log('[PRINT] Lock global liberado');
+        }, 1000);
+      }
+    }, 500); // Reduzido para 500ms para resposta mais rápida
+  } else {
+    (window as any).isPrinting = false;
+    console.error('[PRINT] Não foi possível obter o documento do iframe');
   }
 };
 
@@ -148,26 +165,6 @@ export const printThermalInvoice = (
   const taxRate = settings.taxRate || 14;
   const netTotal = order.total - order.taxTotal;
 
-  // Obter configuração da impressora térmica
-  const printerConfig = ThermalPrinterManager.getConfig();
-  
-  // Gerar cabeçalho personalizado
-  const headerLines = printerConfig?.headerLines || [
-    settings.restaurantName || 'TASCA DO VEREDA',
-    settings.fiscalId || 'NIF: 123456789',
-    settings.address || 'Rua Principal, 123',
-    settings.phone || '+244 123 456 789'
-  ];
-
-  // Gerar rodapé personalizado
-  const footerLines = printerConfig?.footerLines || [
-    'Obrigado pela sua visita!',
-    'Volte sempre'
-  ];
-
-  const qrData = `AGT;${settings.nif};${order.invoiceNumber};${order.total.toFixed(2)};${new Date(order.timestamp).toISOString()};${order.hash}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
-
   const html = `
     <!DOCTYPE html>
     <html>
@@ -177,28 +174,31 @@ export const printThermalInvoice = (
       </head>
       <body>
         <div class="text-center">
-          <div class="header-title">${settings.restaurantName}</div>
-          <div class="bold">${settings.address}</div>
-          <div>NIF: ${settings.nif}</div>
-          <div>TEL: ${settings.phone}</div>
+          <div class="header-title">${settings.restaurantName || 'TASCA DO VEREDA'}</div>
+          <div style="font-size: 9px;">NIF: ${settings.nif || '999999999'}</div>
+          <div style="font-size: 9px;">${settings.address || 'Endereço da Empresa'}</div>
+          <div style="font-size: 9px;">${settings.phone || 'Telefone'}</div>
           <div class="divider"></div>
-          <div class="bold" style="font-size: 14px; text-transform: uppercase;">${docType}</div>
-          <div class="bold" style="font-size: 14px;">${order.invoiceNumber}</div>
+          <div class="bold" style="font-size: 12px; text-transform: uppercase;">${docType}</div>
+          <div class="bold" style="font-size: 11px;">${order.invoiceNumber}</div>
           <div class="divider"></div>
         </div>
 
-        <div style="display: flex; justify-content: space-between;">
+        <div style="display: flex; justify-content: space-between; font-size: 9px;">
           <span>DATA: ${new Date(order.timestamp).toLocaleDateString('pt-AO')}</span>
           <span>HORA: ${new Date(order.timestamp).toLocaleTimeString('pt-AO')}</span>
         </div>
-        <div>MOEDA: AOA (Kwanza)</div>
-        <div class="divider"></div>
-
+        
         <div class="customer-box">
-          <div class="bold">CLIENTE:</div>
-          <div>NOME: ${customer?.name || 'CONSUMIDOR FINAL'}</div>
-          <div>NIF: ${customer?.nif || '999999999'}</div>
+          <div style="font-size: 9px;">
+            <strong>CLIENTE:</strong> ${customer?.name || 'CONSUMIDOR FINAL'}
+          </div>
+          <div style="font-size: 9px;">
+            <strong>NIF:</strong> ${customer?.nif || '999999999'}
+          </div>
         </div>
+
+        <div class="divider"></div>
 
         <table class="items-table">
           <thead>
@@ -209,10 +209,12 @@ export const printThermalInvoice = (
           </thead>
           <tbody>
             ${order.items.map(item => {
-              const dish = menu.find(d => d.id === item.dishId);
+              const dish = item.dish;
+              const itemName = dish?.name || 'Produto Sem Nome';
+              const safeItemName = typeof itemName === 'string' ? itemName.substring(0, 30) : String(itemName).substring(0, 30);
               return `
                 <tr>
-                  <td>${item.quantity}x ${dish?.name.substring(0, 30)}</td>
+                  <td>${item.quantity}x ${safeItemName}</td>
                   <td class="text-right">${(item.unitPrice * item.quantity).toFixed(0)}</td>
                 </tr>
               `;
@@ -222,11 +224,11 @@ export const printThermalInvoice = (
 
         <div class="divider"></div>
 
-        <div class="text-right" style="font-size: 14px;">
+        <div class="text-right" style="font-size: 12px;">
           <div class="bold">TOTAL A PAGAR: ${formatKz(order.total)}</div>
         </div>
 
-        <div style="margin-top: 15px;">
+        <div style="margin-top: 10px;">
           <div class="bold" style="font-size: 9px; text-decoration: underline;">RESUMO DE IMPOSTOS:</div>
           <table class="tax-table">
             <thead>
@@ -248,23 +250,18 @@ export const printThermalInvoice = (
           </table>
         </div>
 
-        <div class="qr-container">
-          <img src="${qrUrl}" width="150" height="150" />
-        </div>
-
         <div class="hash-box">
-          ${order.hash?.substring(0, 4)}-${order.hash?.substring(order.hash.length - 4)} 
-          <br/> Processado por programa validado n.º ${settings.agtCertificate}/AGT
+          <strong>CÓDIGO DE VALIDAÇÃO AGT:</strong><br/>
+          ${order.hash?.substring(0, 4)}-${order.hash?.substring(order.hash.length - 4)}<br/>
+          Processado por programa certificado<br/>
+          N.º ${settings.agtCertificate || '000'}/AGT/2025
         </div>
 
-        <div class="legal-footer">
-          OS BENS/SERVIÇOS FORAM POSTOS À DISPOSIÇÃO DO ADQUIRENTE NA DATA E LOCAL DO DOCUMENTO.
-          <br/><br/>
-          OBRIGADO PELA PREFERÊNCIA!
-          <br/>
-          <b>VEREDA OS v1.0.6</b>
+        <div class="divider"></div>
+        <div class="text-center" style="font-size: 8px;">
+          Documento processado eletronicamente<br/>
+          REST IA OS v1.1.1
         </div>
-        ${getThermalCommands()}
       </body>
     </html>
   `;
@@ -378,7 +375,7 @@ export const printCashClosing = (closedToday: Order[], settings: SystemSettings,
         <div class="legal-footer">
           RELATÓRIO DE USO INTERNO
           <br/>
-          <b>VEREDA OS v1.0.6</b>
+          <b>REST IA OS v1.1.1</b>
         </div>
         ${getThermalCommands()}
       </body>

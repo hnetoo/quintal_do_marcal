@@ -1,7 +1,7 @@
 {
   "name": "tasca-do-vereda-app",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,9 +27,9 @@
     "@google/genai": "^1.40.0",
     "@prisma/client": "^5.11.0",
     "@supabase/supabase-js": "^2.95.3",
-    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/api": "^2.1.0",
     "@tauri-apps/plugin-dialog": "^2.1.0",
-    "@tauri-apps/plugin-fs": "^2.1.0",
+    "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-shell": "^2.1.0",
     "@tauri-apps/plugin-sql": "^2.1.0",
     "@types/uuid": "^10.0.0",

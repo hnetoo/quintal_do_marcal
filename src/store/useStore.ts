@@ -2,18 +2,37 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Table, Order, OrderItem, Dish, Customer, User, Employee, StockItem, Category, SystemSettings, TableStatus, OrderType, OrderStatus, PaymentMethod, CashFlowStatus } from '../types';
 import { sqliteService } from '../lib/sqliteService';
+import { databaseService } from '../lib/databaseService';
 import { versionControlService } from '../lib/versionControlService';
 import { sqlMigrationService } from '../lib/sqlMigrationService';
 import { MOCK_MENU, MOCK_TABLES, MOCK_CUSTOMERS, MOCK_USERS, MOCK_CATEGORIES, MOCK_STOCK, MOCK_RESERVATIONS } from '../../constants';
 import defaultLogo from '../assets/logo.png';
 
-const syncChannel = new BroadcastChannel('vereda_state_sync');
+const syncChannel = new BroadcastChannel('rest-ia_state_sync');
 
 const customPersistenceStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
+      console.log('[STORE] Carregando estado do SQLite...');
       const data = await sqliteService.loadState();
-      if (data) return JSON.stringify({ state: data, version: 8 });
+      
+      if (data) {
+        console.log('[STORE] Estado encontrado no SQLite:', {
+          taxRegime: data.settings?.taxRegime,
+          taxRate: data.settings?.taxRate,
+          ordersCount: data.orders?.length || 0,
+          expensesCount: data.expenses?.length || 0
+        });
+        
+        // 🔍 FORÇAR REHIDRATAÇÃO COM DADOS REAIS
+        if (data.orders && data.orders.length > 0) {
+          console.log('🔄 [STORE] Reidratando com', data.orders.length, 'ordens do SQLite');
+        }
+        
+        return JSON.stringify({ state: data, version: 8 });
+      }
+      
+      console.log('[STORE] Nenhum estado encontrado no SQLite, usando fallback');
       
       // Fallback for Web: Try Supabase
       const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -27,15 +46,25 @@ const customPersistenceStorage: StateStorage = {
       }
       
       return null;
-    } catch (e) { return null; }
+    } catch (e) { 
+      console.error('[STORE] Erro ao carregar estado:', e);
+      return null; 
+    }
   },
   setItem: async (name: string, value: string): Promise<void> => {
     try {
       const parsed = JSON.parse(value);
+      console.log('[STORE] Salvando estado no SQLite:', {
+        taxRegime: parsed.state?.settings?.taxRegime,
+        taxRate: parsed.state?.settings?.taxRate
+      });
       await sqliteService.saveState(parsed.state);
+      console.log('[STORE] Estado salvo com sucesso!');
       // Notify other tabs/windows
       syncChannel.postMessage({ type: 'STATE_UPDATE' });
-    } catch (e) {}
+    } catch (e) {
+      console.error('[STORE] Erro ao salvar estado:', e);
+    }
   },
   removeItem: async (name: string): Promise<void> => {
     await sqliteService.saveState(null);
@@ -139,7 +168,6 @@ interface StoreState {
   removeCustomer: (id: string) => void;
   settleCustomerDebt: (id: string, amount: number) => void;
 
-  employees: Employee[];
   addEmployee: (e: Employee) => void;
   updateEmployee: (e: Employee) => void;
   removeEmployee: (id: string) => void;
@@ -230,8 +258,8 @@ export const useStore = create<StoreState>()(
         restaurantName: "REST IA",
         appLogoUrl: defaultLogo,
         currency: "Kz",
-        taxRate: 14,
-        taxRegime: 'GERAL',
+        taxRate: 14, // Default - será sobrescrito pelo estado salvo
+        taxRegime: 'GERAL', // Default - será sobrescrito pelo estado salvo
         phone: "+244 923 000 000",
         address: "Via AL 15, Talatona, Luanda",
         nif: "5000000000",
@@ -253,16 +281,37 @@ export const useStore = create<StoreState>()(
         versionControlService.createRestorePoint('Auto-backup antes de alteração de definições', oldState);
         
         // SEMPRE SALVAR LOCALMENTE PRIMEIRO
-        console.log('💾 Salvando configurações localmente...');
+        console.log('💾 Salvando configurações localmente...', s);
+        // 🔍 DEBUG: Verificar se valores defaults estão sendo usados indevidamente
+        console.log('🔍 [STORE DEBUG] updateSettings chamado:', {
+          taxRegime: s.taxRegime,
+          taxRate: s.taxRate,
+          fonte: 'parâmetro recebido'
+        });
+        
+        // 🔍 IMPORTANTE: NUNCA usar valores fixos aqui
+        // Sempre usar os valores do parâmetro 's'
         const merged = { ...get().settings, ...s };
         const baseUrl = "https://tasca-do-vereda.vercel.app/menu-digital";
         const shareUrl = (merged.supabaseUrl && merged.supabaseKey)
           ? `${baseUrl}?supabaseUrl=${encodeURIComponent(merged.supabaseUrl)}&anonKey=${encodeURIComponent(merged.supabaseKey)}`
           : baseUrl;
         
+        // ATUALIZAR ESTADO PRIMEIRO
         set(state => ({
           settings: { ...merged, customDigitalMenuUrl: shareUrl }
         }));
+        
+        // FORÇAR SALVAMENTO NO SQLITE IMEDIATAMENTE
+        const currentState = get();
+        sqliteService.saveState(currentState).then(() => {
+          console.log('✅ Configurações salvas no SQLite:', {
+            taxRegime: currentState.settings.taxRegime,
+            taxRate: currentState.settings.taxRate
+          });
+        }).catch(error => {
+          console.error('❌ Erro ao salvar configurações no SQLite:', error);
+        });
         
         // Se auto-backup estiver ativo, criar um backup real no DB Hub
         if (s.autoBackup && !get().settings.autoBackup) {
@@ -543,7 +592,7 @@ export const useStore = create<StoreState>()(
       checkoutTable: async (orderId, paymentMethod, customerId) => {
         const series = get().settings.invoiceSeries;
         const count = get().invoiceCounter;
-        const invoiceNumber = `FR VER${series}/${count}`;
+        const invoiceNumber = `FR REST IA${series}/${count}`;
         const hash = Math.random().toString(36).substring(2, 12).toUpperCase();
         
         set(state => {
@@ -834,17 +883,7 @@ export const useStore = create<StoreState>()(
         })
       })),
 
-      addCustomer: (c) => set(state => ({ customers: [...state.customers, c] })),
-      updateCustomer: (c) => set(state => ({ customers: state.customers.map(x => x.id === c.id ? c : x) })),
-      removeCustomer: (id) => set(state => ({ customers: state.customers.filter(x => x.id !== id) })),
-      settleCustomerDebt: (id, amount) => set(state => ({
-        customers: state.customers.map(c => c.id === id ? { ...c, balance: Math.max(0, c.balance - amount) } : c)
-      })),
-
-      addEmployee: (e) => set(state => ({ employees: [...state.employees, e] })),
-      
-      // PERSISTÊNCIA DE FUNCIONÁRIOS NO SUPABASE - NOVO E CRÍTICO
-      addEmployeeWithPersistence: async (e: any) => {
+      addEmployee: async (e: Employee) => {
         set(state => ({ employees: [...state.employees, e] }));
         
         try {
@@ -930,23 +969,23 @@ export const useStore = create<StoreState>()(
         }
       },
 
-restoreFromSupabase: async () => {
-  get().addNotification('info', 'Restaurando integridade...');
-  try {
-    const { data, error } = await supabase
-      .from('restaurant_state')
-      .select('state_data')
-      .eq('id', 'main')
-      .single();
-    
-    if (data?.state_data) {
-      set(JSON.parse(data.state_data));
-      get().addNotification('success', 'Dados restaurados da nuvem com sucesso!');
-    }
-  } catch (error) {
-    get().addNotification('error', 'Falha ao restaurar da nuvem');
-  }
-},
+      restoreFromSupabase: async () => {
+        get().addNotification('info', 'Restaurando integridade...');
+        try {
+          const { data, error } = await supabase
+            .from('restaurant_state')
+            .select('state_data')
+            .eq('id', 'main')
+            .single();
+          
+          if (data?.state_data) {
+            set(JSON.parse(data.state_data));
+            get().addNotification('success', 'Dados restaurados da nuvem com sucesso!');
+          }
+        } catch (error) {
+          get().addNotification('error', 'Falha ao restaurar da nuvem');
+        }
+      },
 
       addExpense: (expense) => set(state => {
         const newExpense = {
@@ -1274,7 +1313,7 @@ restoreFromSupabase: async () => {
     }),
     {
       name: 'vereda-quantum-store-v8',
-      version: 1, // Adicione a versão
+      version: 8, // Versão correspondente ao storage
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
           // Se for versão antiga, reseta tudo para evitar crash
@@ -1283,6 +1322,20 @@ restoreFromSupabase: async () => {
         return persistedState;
       },
       storage: createJSONStorage(() => customPersistenceStorage),
+      onRehydrateStorage: () => (state) => {
+        console.log('[Store] 🔄 Estado rehidratado:', state?.activeOrders?.length || 0, 'ordens ativas');
+      },
+      // Força salvamento ao descarregar a página
+      serialize: (state) => {
+        try {
+          const serialized = JSON.stringify(state);
+          console.log('[Store] 💾 Salvando estado com', state?.activeOrders?.length || 0, 'ordens ativas');
+          return serialized;
+        } catch (error) {
+          console.error('[Store] ❌ Erro ao serializar estado:', error);
+          return '{}';
+        }
+      },
     }
   )
 );

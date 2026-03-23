@@ -339,7 +339,7 @@ class SqliteService {
           ["current_state", dataStr]
         );
       } else {
-        localStorage.setItem('tasca_vereda_storage_v6', dataStr);
+        localStorage.setItem('vereda-quantum-store-v8', dataStr);
       }
     } catch (e) {
       console.error("Erro ao persistir estado:", e);
@@ -360,11 +360,12 @@ class SqliteService {
         }
       }
       
-      const data = localStorage.getItem('tasca_vereda_storage_v6');
+      const data = localStorage.getItem('vereda-quantum-store-v8');
       if (!data) return null;
 
       const parsed = JSON.parse(data);
-      return (typeof parsed === 'object') ? parsed : null;
+      // Zustand persist armazena como { state: {...}, version: N }
+      return parsed.state || parsed;
     } catch (e) {
       console.error("Erro ao carregar estado:", e);
       return null;

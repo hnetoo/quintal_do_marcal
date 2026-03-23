@@ -1,12 +1,16 @@
 {
-  "$schema": "../gen/schemas/capability.json",
+  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissões padrão para a Tasca do Vereda",
+  "description": "Permissões completas para a Tasca do Vereda - Windows",
   "windows": ["main"],
+  "platforms": ["windows"],
   "permissions": [
     "core:default",
-    "sql:default",
+    "core:webview:default",
     "shell:allow-open",
+    "shell:default",
+    "sql:default",
+    "fs:default",
     "dialog:default"
   ]
 }
