@@ -21,19 +21,72 @@ const AGTControl = () => {
   };
 
   const handleRegimeChange = (regime: TaxRegime) => {
+    // 🔥 REGRAS FISCAIS ANGOLA: Taxas fixas por regime
     let rate = 0;
-    if (regime === 'GERAL') rate = 14;
-    else if (regime === 'SIMPLIFICADO') rate = 7;
-    else if (regime === 'EXCLUSAO') rate = 0;
+    if (regime === 'GERAL') rate = 14;      // Regime Geral: 14%
+    else if (regime === 'SIMPLIFICADO') rate = 7;  // Regime Simplificado: 7%
+    else if (regime === 'EXCLUSAO') rate = 0;     // Regime de Exclusão: 0%
     
-    setLocalSettings({ ...localSettings, taxRegime: regime, taxRate: rate });
+    setLocalSettings({ 
+      ...localSettings, 
+      taxRegime: regime, 
+      taxRate: rate // 🔥 TAXA CORRETA SEGUNDO REGIME
+    });
   };
 
-  const handleExportSAFT = () => {
-    const period = { month: new Date().getMonth(), year: new Date().getFullYear() };
-    const xml = generateSAFT(activeOrders, customers, menu, settings, period);
-    downloadSAFT(xml, `SAFT_AO_${settings.nif}_${period.year}.xml`);
-    addNotification('success', 'Ficheiro SAF-T AO (v1.01) gerado com sucesso.');
+  const handleExportSAFT = async () => {
+    console.log('� [SAFT] BOTÃO CLICADO - Iniciando exportação...');
+    
+    // 🔥 VERIFICAÇÃO IMEDIATA
+    if (!activeOrders || activeOrders.length === 0) {
+      console.log('❌ [SAFT] Sem ordens ativas');
+      addNotification('error', 'Não há ordens para exportar.');
+      return;
+    }
+    
+    if (!customers || customers.length === 0) {
+      console.log('❌ [SAFT] Sem clientes');
+      addNotification('error', 'Não há clientes para exportar.');
+      return;
+    }
+    
+    if (!menu || menu.length === 0) {
+      console.log('❌ [SAFT] Sem menu/produtos');
+      addNotification('error', 'Não há produtos para exportar.');
+      return;
+    }
+    
+    console.log('✅ [SAFT] Dados verificados, iniciando geração...');
+    
+    try {
+      const period = { month: new Date().getMonth(), year: new Date().getFullYear() };
+      console.log('� [SAFT] Período:', period);
+      
+      // 🔥 GERAR XML COM LOGS
+      console.log('📝 [SAFT] Gerando XML...');
+      const xml = generateSAFT(activeOrders, customers, menu, settings, period);
+      console.log('✅ [SAFT] XML gerado, tamanho:', xml.length, 'caracteres');
+      
+      // 🔥 VERIFICAÇÃO DO XML
+      if (!xml || xml.length < 100) {
+        throw new Error('XML inválido ou vazio');
+      }
+      
+      const filename = `SAFT_AO_${settings.nif || '5000000000'}_${period.year}.xml`;
+      console.log('� [SAFT] Nome do arquivo:', filename);
+      
+      // 🔥 DOWNLOAD COM LOGS
+      console.log('⬇️ [SAFT] Iniciando download...');
+      await downloadSAFT(xml, filename);
+      
+      // 🔥 SUCESSO
+      addNotification('success', 'Ficheiro SAF-T AO (v1.01) exportado com sucesso!');
+      console.log('🎉 [SAFT] Exportação concluída com sucesso!');
+      
+    } catch (error) {
+      console.error('💥 [SAFT] ERRO DETALHADO:', error);
+      addNotification('error', `Erro no SAF-T: ${(error as Error).message || 'Erro desconhecido'}`);
+    }
   };
 
   return (
@@ -210,7 +263,7 @@ const AGTControl = () => {
                         >
                            <option value="GERAL">Regime Geral (14%)</option>
                            <option value="SIMPLIFICADO">Regime Simplificado (7%)</option>
-                           <option value="EXCLUSAO">Regime de Exclusão</option>
+                           <option value="EXCLUSAO">Regime de Exclusão (0%)</option>
                         </select>
                       </div>
                       <div>

@@ -185,12 +185,74 @@ const Finance = () => {
   const metrics = calculateMetrics();
 
   const handleExportSAFT = async () => {
+    console.log('🚀 [FINANCE-SAFT] BOTÃO CLICADO - Iniciando exportação...');
     setSaftLoading(true);
+    
     try {
-      await new Promise(r => setTimeout(r, 1000));
-      const xml = generateSAFT(activeOrders, customers, menu, settings, { month: new Date().getMonth(), year: new Date().getFullYear() });
-      downloadSAFT(xml, `SAFT_AO_${settings.nif}.xml`);
-      addNotification('success', 'SAF-T AO Gerado com Sucesso.');
+      // 🔥 VERIFICAÇÃO IMEDIATA
+      if (!activeOrders || activeOrders.length === 0) {
+        console.log('❌ [FINANCE-SAFT] Sem ordens ativas');
+        addNotification('error', 'Não há ordens para exportar.');
+        return;
+      }
+      
+      // 🔥 CORRIGIDO: Criar cliente padrão se não houver clientes
+      let customersToUse = customers;
+      if (!customers || customers.length === 0) {
+        console.log('⚠️ [FINANCE-SAFT] Sem clientes, criando cliente padrão...');
+        customersToUse = [{
+          id: 'CONSUMIDOR_FINAL',
+          name: 'Consumidor Final',
+          phone: '+244 000 000 000',
+          nif: '999999999',
+          points: 0,
+          balance: 0,
+          visits: 0,
+          lastVisit: new Date().toISOString()
+        } as any];
+        console.log('✅ [FINANCE-SAFT] Cliente padrão criado:', customersToUse[0]);
+      }
+      
+      if (!menu || menu.length === 0) {
+        console.log('❌ [FINANCE-SAFT] Sem menu/produtos');
+        addNotification('error', 'Não há produtos para exportar.');
+        return;
+      }
+      
+      console.log('✅ [FINANCE-SAFT] Dados verificados, iniciando geração...');
+      console.log('📊 [FINANCE-SAFT] Resumo:', {
+        ordens: activeOrders.length,
+        clientes: customersToUse.length,
+        produtos: menu.length
+      });
+      
+      const period = { month: new Date().getMonth(), year: new Date().getFullYear() };
+      console.log('📅 [FINANCE-SAFT] Período:', period);
+      
+      // 🔥 GERAR XML COM LOGS
+      console.log('📝 [FINANCE-SAFT] Gerando XML...');
+      const xml = generateSAFT(activeOrders, customersToUse, menu, settings, period);
+      console.log('✅ [FINANCE-SAFT] XML gerado, tamanho:', xml.length, 'caracteres');
+      
+      // 🔥 VERIFICAÇÃO DO XML
+      if (!xml || xml.length < 100) {
+        throw new Error('XML inválido ou vazio');
+      }
+      
+      const filename = `SAFT_AO_${settings.nif || '5000000000'}_${period.year}.xml`;
+      console.log('💾 [FINANCE-SAFT] Nome do arquivo:', filename);
+      
+      // 🔥 DOWNLOAD COM LOGS
+      console.log('⬇️ [FINANCE-SAFT] Iniciando download...');
+      await downloadSAFT(xml, filename);
+      
+      // 🔥 SUCESSO
+      addNotification('success', 'Ficheiro SAF-T AO (v1.01) exportado com sucesso!');
+      console.log('🎉 [FINANCE-SAFT] Exportação concluída com sucesso!');
+      
+    } catch (error) {
+      console.error('💥 [FINANCE-SAFT] ERRO DETALHADO:', error);
+      addNotification('error', `Erro no SAF-T: ${(error as Error).message || 'Erro desconhecido'}`);
     } finally {
       setSaftLoading(false);
     }

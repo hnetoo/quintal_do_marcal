@@ -114,13 +114,69 @@ export const generateSAFT = (
   return xml;
 };
 
-export const downloadSAFT = (xml: string, filename: string) => {
-  const blob = new Blob([xml], { type: 'application/xml' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+export const downloadSAFT = async (xml: string, filename: string) => {
+  try {
+    // 🔥 VERIFICAR SE ESTÁ EM AMBIENTE TAURI
+    const isTauri = !!(window as any).__TAURI_INTERNALS__;
+    
+    if (isTauri) {
+      console.log('🔥 [SAFT] Usando APIs Tauri para download...');
+      
+      // 🔥 USAR APIs DO TAURI
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      
+      // Converter XML para Uint8Array
+      const uint8Array = new TextEncoder().encode(xml);
+      
+      // Abrir diálogo "Salvar Como"
+      const selectedPath = await save({
+        title: 'Salvar SAF-T AO',
+        defaultPath: filename,
+        filters: [
+          {
+            name: 'XML Files',
+            extensions: ['xml']
+          }
+        ]
+      });
+      
+      if (selectedPath) {
+        await writeFile(selectedPath, uint8Array);
+        console.log(`✅ [SAFT] Salvo com sucesso: ${selectedPath}`);
+      } else {
+        console.log('❌ [SAFT] Utilizador cancelou o salvamento');
+      }
+    } else {
+      // 🔥 FALLBACK PARA BROWSER
+      console.log('🌐 [SAFT] Usando fallback do browser...');
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log(`✅ [SAFT] Download via browser: ${filename}`);
+    }
+  } catch (error) {
+    console.error('❌ [SAFT] Erro ao fazer download:', error);
+    // 🔥 FALLBACK DE EMERGÊNCIA
+    try {
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (fallbackError) {
+      console.error('❌ [SAFT] Fallback também falhou:', fallbackError);
+      throw error;
+    }
+  }
 };

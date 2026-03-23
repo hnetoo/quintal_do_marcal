@@ -68,7 +68,7 @@ const App = () => {
             currentUser?.id ? (
               <div className="flex h-screen w-full overflow-hidden">
                 <Sidebar />
-                <main className="flex-1 h-full overflow-hidden relative">
+                <main className="flex-1 h-full overflow-hidden relative max-h-screen">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Dashboard />} />

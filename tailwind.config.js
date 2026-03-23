@@ -21,6 +21,21 @@ export default {
       boxShadow: {
         'glow': '0 0 20px -5px rgba(6, 182, 212, 0.3)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+      },
+      screens: {
+        'tablet': '1024px', // Tablet breakpoint
+        'small': '768px',   // Small screens
+        'compact': '600px'  // Compact screens
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
+      },
+      maxHeight: {
+        '96': '24rem',
+        'screen-75': '75vh',
+        'screen-85': '85vh',
       }
     },
   },

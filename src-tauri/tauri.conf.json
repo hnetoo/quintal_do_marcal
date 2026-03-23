@@ -33,7 +33,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri://localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: tauri://localhost https://*.supabase.co https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com;",
+      "csp": "default-src 'self' tauri://localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: tauri://localhost https://*.supabase.co https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://ipc.localhost https://images.unsplash.com https://*.unsplash.com https://plus.unsplash.com;",
       "dangerousDisableAssetCspModification": true,
       "assetProtocol": {
         "enable": true,

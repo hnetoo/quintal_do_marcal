@@ -31,6 +31,20 @@ class SqliteService {
           )
         `);
 
+        // 🔥 TABELA SETTINGS PARA TAXA DE IMPOSTO
+        await this.db.execute(`
+          CREATE TABLE IF NOT EXISTS settings (
+            id TEXT PRIMARY KEY DEFAULT 'default',
+            taxRate REAL DEFAULT 7,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        // 🔥 MIGRAÇÃO INICIAL - Inserir settings se não existirem
+        await this.db.execute(`
+          INSERT OR IGNORE INTO settings (id, taxRate) VALUES ('default', 7)
+        `);
+
         // Tabela de pedidos para histórico
         await this.db.execute(`
           CREATE TABLE IF NOT EXISTS orders_history (
@@ -343,6 +357,40 @@ class SqliteService {
       }
     } catch (e) {
       console.error("Erro ao persistir estado:", e);
+    }
+  }
+
+  // 🔥 MÉTODO PARA SALVAR TAXA DE IMPOSTO NO SQLITE
+  async saveTaxRate(taxRate: number): Promise<void> {
+    try {
+      if (this.isTauri && this.db) {
+        await this.db.execute(
+          "UPDATE settings SET taxRate = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 'default'",
+          [taxRate]
+        );
+        console.log(`💰 [SQLite] Taxa de imposto atualizada: ${taxRate}%`);
+      } else {
+        console.warn('⚠️ [SQLite] Ambiente não-Tauri, taxa não salva no banco');
+      }
+    } catch (e) {
+      console.error("❌ [SQLite] Erro ao salvar taxa de imposto:", e);
+    }
+  }
+
+  // 🔥 MÉTODO PARA CARREGAR TAXA DE IMPOSTO DO SQLITE
+  async loadTaxRate(): Promise<number> {
+    try {
+      if (this.isTauri && this.db) {
+        const result: any[] = await this.db.select(
+          "SELECT taxRate FROM settings WHERE id = 'default'"
+        );
+        return result[0]?.taxRate || 7;
+      } else {
+        return 7; // Fallback para ambiente web
+      }
+    } catch (e) {
+      console.error("❌ [SQLite] Erro ao carregar taxa de imposto:", e);
+      return 7; // Fallback
     }
   }
 

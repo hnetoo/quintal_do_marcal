@@ -1177,10 +1177,12 @@ const SystemHub = () => {
 
       setIsResetting(true);
       try {
-        // Simulação de reset de dados
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('🔄 [PRODUCTION-RESET] Iniciando reset completo de dados...');
         
-        // Resetar todos os valores para zero
+        // 🔥 RESET COMPLETO DOS DADOS FINANCEIROS E DE PRODUÇÃO
+        const { addNotification, resetFinancialData } = useStore.getState();
+        
+        // 1. Resetar dados de produção local
         setProductionData({
           ordersToday: 0,
           revenueToday: 0,
@@ -1190,56 +1192,78 @@ const SystemHub = () => {
           lastReset: new Date().toISOString().split('T')[0]
         });
 
-        // Limpar formulário
+        // 2. Reset completo dos dados financeiros
+        resetFinancialData();
+        console.log('✅ [PRODUCTION-RESET] Dados financeiros resetados');
+
+        // 3. Limpar cache do localStorage
+        localStorage.removeItem('pos_orders');
+        localStorage.removeItem('financial_history');
+        localStorage.removeItem('daily_revenue');
+        localStorage.removeItem('production_stats');
+        localStorage.removeItem('active_orders');
+        localStorage.removeItem('expenses');
+        console.log('✅ [PRODUCTION-RESET] Cache local limpo');
+
+        // 4. Limpar formulário
         setResetReason('');
         setIsConfirming(false);
         
-        console.log('Produção resetada com sucesso. Motivo:', resetReason);
+        // 5. Notificar sucesso
+        addNotification('success', `Produção resetada com sucesso! Motivo: ${resetReason}`);
+        console.log('✅ [PRODUCTION-RESET] Reset completo finalizado. Motivo:', resetReason);
+        
+        // 6. Forçar reload da página para garantir limpeza completa
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+        
       } catch (error) {
-        console.error('Erro ao resetar produção:', error);
+        console.error('❌ [PRODUCTION-RESET] Erro ao resetar produção:', error);
+        addNotification('error', 'Erro ao resetar produção. Tente novamente.');
       } finally {
         setIsResetting(false);
       }
     };
 
     return (
-      <div className="space-y-6">
-        {/* Status Atual da Produção */}
-        <div className="glass-panel p-8 rounded-[2.5rem] border border-white/5 space-y-6">
-          <h4 className="text-sm font-black text-white italic uppercase flex items-center gap-3">
-            <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            Status Atual da Produção
-          </h4>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-center">
-              <div className="text-3xl font-bold text-green-500 mb-2">{productionData.ordersToday}</div>
-              <div className="text-[8px] text-slate-400 uppercase">Pedidos Hoje</div>
-            </div>
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-blue-500 mb-2">{formatKz(productionData.revenueToday)}</div>
-              <div className="text-[8px] text-slate-400 uppercase">Receita Hoje</div>
-            </div>
-            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-purple-500 mb-2">{formatKz(productionData.profitToday)}</div>
-              <div className="text-[8px] text-slate-400 uppercase">Lucro Hoje</div>
-            </div>
-            <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-orange-500 mb-2">{productionData.itemsSold}</div>
-              <div className="text-[8px] text-slate-400 uppercase">Itens Vendidos</div>
-            </div>
-            <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-cyan-500 mb-2">{productionData.activeTables}</div>
-              <div className="text-[8px] text-slate-400 uppercase">Mesas Ativas</div>
-            </div>
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
-              <div className="text-lg font-bold text-red-500 mb-2">
-                {new Date(productionData.lastReset).toLocaleDateString('pt-AO')}
+      <div className="h-full flex flex-col space-y-6">
+          {/* Status Atual da Produção */}
+          <div className="glass-panel p-6 tablet:p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+            <h4 className="text-sm font-black text-white italic uppercase flex items-center gap-3">
+              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+              Status Atual da Produção
+            </h4>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 tablet:gap-4">
+              <div className="p-3 tablet:p-4 bg-green-500/10 border border-green-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-2xl tablet:text-3xl font-bold text-green-500 mb-1 tablet:mb-2">{productionData.ordersToday}</div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Pedidos Hoje</div>
               </div>
-              <div className="text-[8px] text-slate-400 uppercase">Último Reset</div>
+              <div className="p-3 tablet:p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-xl tablet:text-2xl font-bold text-blue-500 mb-1 tablet:mb-2">{formatKz(productionData.revenueToday)}</div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Receita Hoje</div>
+              </div>
+              <div className="p-3 tablet:p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-xl tablet:text-2xl font-bold text-purple-500 mb-1 tablet:mb-2">{formatKz(productionData.profitToday)}</div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Lucro Hoje</div>
+              </div>
+              <div className="p-3 tablet:p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-xl tablet:text-2xl font-bold text-orange-500 mb-1 tablet:mb-2">{productionData.itemsSold}</div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Itens Vendidos</div>
+              </div>
+              <div className="p-3 tablet:p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-xl tablet:text-2xl font-bold text-cyan-500 mb-1 tablet:mb-2">{productionData.activeTables}</div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Mesas Ativas</div>
+              </div>
+              <div className="p-3 tablet:p-4 bg-red-500/10 border border-red-500/20 rounded-xl tablet:rounded-2xl text-center">
+                <div className="text-sm tablet:text-lg font-bold text-red-500 mb-1 tablet:mb-2">
+                  {new Date(productionData.lastReset).toLocaleDateString('pt-AO')}
+                </div>
+                <div className="text-[7px] tablet:text-[8px] text-slate-400 uppercase">Último Reset</div>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Controlo de Reset */}
         <div className="glass-panel p-8 rounded-[2.5rem] border border-white/5 space-y-6">
@@ -2314,7 +2338,9 @@ const SystemHub = () => {
           </button>
           
           {/* Componente Ativo */}
-          {activeComponent}
+          <div className="h-full overflow-y-auto no-scrollbar pr-2">
+            {activeComponent}
+          </div>
         </div>
       )}
     </div>

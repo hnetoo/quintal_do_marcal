@@ -258,8 +258,8 @@ export const useStore = create<StoreState>()(
         restaurantName: "REST IA",
         appLogoUrl: defaultLogo,
         currency: "Kz",
-        taxRate: 14, // Default - será sobrescrito pelo estado salvo
-        taxRegime: 'GERAL', // Default - será sobrescrito pelo estado salvo
+        taxRate: 6.5, // 🔥 CORRIGIDO: Default 6.5% em vez de 14%
+        taxRegime: 'SIMPLIFICADO', // 🔥 CORRIGIDO: Default SIMPLIFICADO em vez de GERAL
         phone: "+244 923 000 000",
         address: "Via AL 15, Talatona, Luanda",
         nif: "5000000000",
