@@ -318,6 +318,16 @@ const DashboardV2 = () => {
     loadDashboardData();
   }, [startDate, endDate]);
 
+  // 🔥 POLLING AUTOMÁTICO - Atualizar dashboard a cada 10 segundos
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('[DashboardV2] 🔄 Polling automático - atualizando dados...');
+      loadDashboardData();
+    }, 10000); // 10 segundos
+
+    return () => clearInterval(intervalId);
+  }, [startDate, endDate]); // Recriar intervalo se datas mudarem
+
   // Monitorizar mudanças nas métricas para debugging
   useEffect(() => {
     console.log('[DashboardV2] Estado atualizado:', {

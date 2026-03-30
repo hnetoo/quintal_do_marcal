@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Rest-IA v1.1.1 [DEBUG]",
+        "title": "Rest-IA v1.1.1",
         "label": "main",
         "url": "index.html",
         "width": 1280,
