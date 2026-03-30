@@ -163,6 +163,11 @@ interface StoreState {
   duplicateCategory: (id: string) => void;
   updateStockQuantity: (id: string, delta: number) => void;
 
+  // Setters para rehidratação
+  setMenu: (menu: Dish[]) => void;
+  setCategories: (categories: MenuCategory[]) => void;
+  setTables: (tables: Table[]) => void;
+
   addCustomer: (customer: Customer) => void;
   updateCustomer: (customer: Customer) => void;
   removeCustomer: (id: string) => void;
@@ -470,6 +475,11 @@ export const useStore = create<StoreState>()(
       updateStockQuantity: (id, delta) => set(state => ({
         stock: state.stock.map(s => s.id === id ? { ...s, quantity: Math.max(0, s.quantity + delta) } : s)
       })),
+
+      // Setters para rehidratação
+      setMenu: (menu: Dish[]) => set({ menu }),
+      setCategories: (categories: MenuCategory[]) => set({ categories }),
+      setTables: (tables: Table[]) => set({ tables }),
 
       createNewOrder: (tableId, name, type: OrderType = 'LOCAL') => {
         const id = `ord-${Date.now()}`;
@@ -1216,9 +1226,6 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      setMenu: (menu: Dish[]) => set({ menu }),
-      setCategories: (categories: MenuCategory[]) => set({ categories }),
-      
       // ✅ FUNÇÃO DE LIMPEZA TOTAL - HARD RESET
       clearAllData: () => {
         console.log('[Store] 🧹 LIMPANDO TODOS OS DADOS LOCAIS...');
@@ -1304,13 +1311,28 @@ export const useStore = create<StoreState>()(
       resetFinancialData: async () => {
         console.log('[Store] 🧹 Reset financeiro iniciado...');
         
-        // Limpar estado local primeiro
+        // Limpar estado local primeiro (APENAS dados financeiros/operacionais)
         set(state => ({
           activeOrders: [],
           invoiceCounter: 1,
           activeTableId: null,
           activeOrderId: null,
-          tables: state.tables.map(t => ({ ...t, status: 'free' as const }))
+          tables: state.tables.map(t => ({ ...t, status: 'free' as const })),
+          // ⚠️ NÃO limpar: menu, categories, customers, users, stock - são dados base!
+          orders: [], // limpar orders persistidas
+          expenses: [], // limpar expenses do estado
+          workShifts: [], // limpar turnos
+          attendance: [], // limpar presenças
+          reservations: [], // limpar reservas
+          auditLogs: [], // limpar logs
+          notifications: [], // limpar notificações
+          metrics: {
+            dailyRevenue: 0,
+            monthlyRevenue: 0,
+            ordersCount: 0,
+            customersCount: 0,
+            averageTicket: 0
+          }
         }));
         
         // Limpar histórico de pedidos do SQLite
@@ -1323,15 +1345,16 @@ export const useStore = create<StoreState>()(
           console.error('[Store] ❌ Erro ao limpar dados locais:', error);
         }
         
-        // Limpar localStorage relacionado a vendas
+        // Limpar localStorage relacionado a vendas (NÃO limpar o store principal!)
         localStorage.removeItem('pos_orders');
         localStorage.removeItem('financial_history');
         localStorage.removeItem('daily_revenue');
         localStorage.removeItem('production_stats');
         localStorage.removeItem('active_orders');
         localStorage.removeItem('expenses');
+        // ⚠️ NÃO remover: vereda-quantum-store-v8 (dados base do sistema)
         
-        console.log('[Store] ✅ Reset financeiro concluído');
+        console.log('[Store] ✅ Reset financeiro concluído - DADOS BASE PRESERVADOS');
       }
     }),
     {
@@ -1345,8 +1368,37 @@ export const useStore = create<StoreState>()(
         return persistedState;
       },
       storage: createJSONStorage(() => customPersistenceStorage),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: (state) => (state) => {
         console.log('[Store] 🔄 Estado rehidratado:', state?.activeOrders?.length || 0, 'ordens ativas');
+        
+        // 🔥 GARANTIR QUE DADOS BASE EXISTAM APÓS REHIDRATAÇÃO
+        if (state) {
+          const currentState = useStore.getState();
+          
+          // Se menu estiver vazio, recarregar mock
+          if (!state.menu || state.menu.length === 0) {
+            console.log('[Store] ⚠️ Menu vazio após rehidratação, recarregando mock...');
+            currentState.setMenu(MOCK_MENU.map(m => ({...m, isVisibleDigital: true, isFeatured: false})));
+          }
+          
+          // Se categorias estiverem vazias, recarregar mock
+          if (!state.categories || state.categories.length === 0) {
+            console.log('[Store] ⚠️ Categorias vazias após rehidratação, recarregando mock...');
+            currentState.setCategories(MOCK_CATEGORIES.map(c => ({...c, isVisibleDigital: true})));
+          }
+          
+          // Se tabelas estiverem vazias, recarregar mock
+          if (!state.tables || state.tables.length === 0) {
+            console.log('[Store] ⚠️ Mesas vazias após rehidratação, recarregando mock...');
+            currentState.setTables(MOCK_TABLES);
+          }
+          
+          // Se users estiverem vazios, recarregar mock
+          if (!state.users || state.users.length === 0) {
+            console.log('[Store] ⚠️ Users vazios após rehidratação, recarregando mock...');
+            // Users não tem setter direto, precisa ser adicionado via addUser ou inicializado no estado
+          }
+        }
       },
       // Força salvamento ao descarregar a página
       serialize: (state) => {
