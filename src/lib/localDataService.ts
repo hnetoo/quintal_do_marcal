@@ -259,6 +259,28 @@ export class LocalDataService {
     }
   }
 
+  // === LIMPEZA TOTAL ===
+
+  async clearAllOrders(): Promise<void> {
+    try {
+      await sqliteService.clearAllOrders();
+      console.log('[LocalDataService] Todos os pedidos removidos');
+    } catch (error) {
+      console.error('[LocalDataService] Erro ao limpar pedidos:', error);
+      throw error;
+    }
+  }
+
+  async clearAllExpenses(): Promise<void> {
+    try {
+      await sqliteService.clearAllExpenses();
+      console.log('[LocalDataService] Todas as despesas removidas');
+    } catch (error) {
+      console.error('[LocalDataService] Erro ao limpar despesas:', error);
+      throw error;
+    }
+  }
+
   // === SAÚDE DO SISTEMA ===
 
   async checkHealth(): Promise<any> {

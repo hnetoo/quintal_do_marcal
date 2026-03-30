@@ -394,6 +394,44 @@ class SqliteService {
     }
   }
 
+  // Limpar todos os pedidos do histórico
+  async clearAllOrders(): Promise<void> {
+    if (!this.isTauri || !this.db) {
+      console.log('[SQLite] clearAllOrders disponível apenas em ambiente desktop');
+      return;
+    }
+
+    try {
+      console.log('[SQLite] Limpando histórico de pedidos...');
+      const result = await this.db.execute("DELETE FROM orders_history");
+      console.log('[SQLite] Pedidos removidos:', result.rowsAffected || 0);
+      
+      // Limpar também tabela de estado da aplicação
+      await this.db.execute("DELETE FROM application_state WHERE id = 'current_state'");
+      console.log('[SQLite] Estado da aplicação limpo');
+    } catch (error) {
+      console.error('[SQLite] Erro ao limpar pedidos:', error);
+      throw error;
+    }
+  }
+
+  // Limpar todas as despesas
+  async clearAllExpenses(): Promise<void> {
+    if (!this.isTauri || !this.db) {
+      console.log('[SQLite] clearAllExpenses disponível apenas em ambiente desktop');
+      return;
+    }
+
+    try {
+      console.log('[SQLite] Limpando despesas...');
+      const result = await this.db.execute("DELETE FROM expenses");
+      console.log('[SQLite] Despesas removidas:', result.rowsAffected || 0);
+    } catch (error) {
+      console.error('[SQLite] Erro ao limpar despesas:', error);
+      throw error;
+    }
+  }
+
   async loadState(): Promise<any> {
     try {
       if (this.isTauri) {

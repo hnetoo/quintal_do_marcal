@@ -1301,7 +1301,10 @@ export const useStore = create<StoreState>()(
         }
       },
       
-      resetFinancialData: () => {
+      resetFinancialData: async () => {
+        console.log('[Store] 🧹 Reset financeiro iniciado...');
+        
+        // Limpar estado local primeiro
         set(state => ({
           activeOrders: [],
           invoiceCounter: 1,
@@ -1309,6 +1312,26 @@ export const useStore = create<StoreState>()(
           activeOrderId: null,
           tables: state.tables.map(t => ({ ...t, status: 'free' as const }))
         }));
+        
+        // Limpar histórico de pedidos do SQLite
+        try {
+          const { localDataService } = await import('../lib/localDataService');
+          await localDataService.clearAllOrders();
+          await localDataService.clearAllExpenses();
+          console.log('[Store] ✅ Dados financeiros locais limpos');
+        } catch (error) {
+          console.error('[Store] ❌ Erro ao limpar dados locais:', error);
+        }
+        
+        // Limpar localStorage relacionado a vendas
+        localStorage.removeItem('pos_orders');
+        localStorage.removeItem('financial_history');
+        localStorage.removeItem('daily_revenue');
+        localStorage.removeItem('production_stats');
+        localStorage.removeItem('active_orders');
+        localStorage.removeItem('expenses');
+        
+        console.log('[Store] ✅ Reset financeiro concluído');
       }
     }),
     {
