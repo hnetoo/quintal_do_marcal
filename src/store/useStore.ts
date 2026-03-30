@@ -654,7 +654,9 @@ export const useStore = create<StoreState>()(
               // NÃO mostrar erro ao usuário - sync é opcional
             }
           }
+          return finalOrder; // 🔥 RETORNAR O PEDIDO PARA O POS
         }
+        return null;
       },
 
       updateOrderPaymentMethod: (orderId, newMethod) => {
